@@ -1,8 +1,6 @@
 ---
 layout: default
 ---
-![Profile Picture](https://avatars2.githubusercontent.com/u/5108069?s=100)
-
 I am a programming-languages enthusiast, interested in questions of expressivenes, and the interplay with logic.
 
 I am Proficient in Python, C, C++ and Java. I love playing around with COQ and SMLnj.

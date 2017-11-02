@@ -3,6 +3,6 @@ layout: default
 ---
 I am a programming-languages enthusiast, interested in questions of expressivenes, and the interplay with logic.
 
-I am Proficient in Python, C, C++ and Java. I love playing around with COQ and SMLnj.
+I speak Python, C, C++, Java, C#, Javascript, Scala and more. I love playing around with function programming and COQ.
 
-In my free time I am contributing code to [mypy](http://github.com/python/mypy), a static type checker for Python. Check it, it works!
+I am contributing code to [mypy](http://github.com/python/mypy), a static type checker for Python. Check it out, it works!

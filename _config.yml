@@ -16,7 +16,7 @@
 title: Elazar Gershuni
 email: elazarg@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  MSc. student in Computer Science at Tel Aviv University
+  MSc. in Computer Science
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://elazarg.github.io"
 twitter_username: elazarg

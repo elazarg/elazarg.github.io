@@ -2,3 +2,9 @@
 ---
 
 @import "{{ site.theme }}";
+
+.profile-img
+{
+    height: 130px;
+    float: left;
+}

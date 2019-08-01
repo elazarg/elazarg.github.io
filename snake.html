@@ -4,8 +4,8 @@
     function game(canv) {
 
         gs = 20;
-        tcx = Math.floor(canv.width / gs);
-        tcy = Math.floor(canv.height / gs);
+        tcx = Math.floor(canv.width / gs - 1);
+        tcy = Math.floor(canv.height / gs - 1);
 
         px = Math.floor(tcx / 2);
         py = Math.floor(tcy / 2);

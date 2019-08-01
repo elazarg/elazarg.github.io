@@ -3,10 +3,12 @@
 <script>
     function game(canv) {
 
-        px = py = 10;
         gs = 20;
-        tcx = canv.width / gs - 1;
-        tcy = canv.height / gs - 1;
+        tcx = Math.floor(canv.width / gs);
+        tcy = Math.floor(canv.height / gs);
+
+        px = Math.floor(tcx / 2);
+        py = Math.floor(tcy / 2);
         ax = ay = 0;
         function put_apple() {
             ax = Math.floor(Math.random() * tcx);

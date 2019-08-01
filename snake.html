@@ -8,15 +8,16 @@
         canv.height = document.body.clientHeight - 20;
         document.addEventListener("keydown", keyPush);
         setInterval(game, 1000 / 15);
+
+        px = py = 10;
+        gs = 20;
+        tcx = canv.width / gs - 1;
+        tcy = canv.height / gs - 1;
+        ax = ay = 15;
+        xv = yv = 0;
+        trail = [];
+        tail = 5;
     }
-    px = py = 10;
-    gs = 20;
-    tcx = 71;
-    tcy = 33;
-    ax = ay = 15;
-    xv = yv = 0;
-    trail = [];
-    tail = 5;
     function game() {
         moved = true;
         px += xv;

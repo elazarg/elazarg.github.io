@@ -82,7 +82,7 @@
             }
         }
     }
-    window.onload = function () {
+    function restart() {
         canv = document.getElementById("gc");
         ctx = canv.getContext("2d");
         canv.width = document.body.clientWidth - 20;
@@ -91,5 +91,6 @@
         document.addEventListener("keydown", g.keyPush);
         setInterval(g.step, 1000 / 10); // /15
     }
-
+    window.onload = restart;
+    window.onresize = restart;
 </script>

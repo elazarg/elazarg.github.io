@@ -19,6 +19,10 @@
         tail = 5;
         moved = true;
         put_apple();
+        function draw_square(px, py, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(px * gs + 1, py * gs + 1, gs - 1, gs - 1);
+        }
 
         return {
             keyPush: function keyPush(evt) {
@@ -56,15 +60,15 @@
                     py = 0;
                 }
                 ctx.fillStyle = "black";
-                ctx.fillRect(0, 0, canv.width, canv.height);
+                ctx.fillRect(0, 0, gs * tcx, gs * tcy);
 
-                ctx.fillStyle = "lime";
                 for (var i = 0; i < trail.length; i++) {
-                    ctx.fillRect(trail[i].x * gs, trail[i].y * gs, gs - 2, gs - 2);
+                    draw_square(trail[i].x, trail[i].y, "lime");
                     if (trail[i].x == px && trail[i].y == py) {
                         tail = 5;
                     }
                 }
+                draw_square(px, py, "white");
                 trail.push({ x: px, y: py });
                 while (trail.length > tail) {
                     trail.shift();
@@ -74,8 +78,7 @@
                     tail++;
                     put_apple();
                 }
-                ctx.fillStyle = "red";
-                ctx.fillRect(ax * gs, ay * gs, gs - 2, gs - 2);
+                draw_square(ax, ay, "red");
             }
         }
     }
@@ -86,7 +89,7 @@
         canv.height = document.body.clientHeight - 20;
         g = game(canv);
         document.addEventListener("keydown", g.keyPush);
-        setInterval(g.step, 1000 / 15);
+        setInterval(g.step, 1000 / 10); // /15
     }
 
 </script>

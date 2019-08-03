@@ -14,14 +14,14 @@
         var head = middle_of_the_board();
         var tail = [];
         var apple = random_location_on_board();
-        var speed = { x: 0, y : 0 };
+        var direction = { x: 0, y : 0 };
         var maximum_tail_size = 5;
         var moved = true;
 
 
-        function move(head, speed) {
-            head.x += speed.x;
-            head.y += speed.y;
+        function move(head, direction) {
+            head.x += direction.x;
+            head.y += direction.y;
             if (head.x < 0) { head.x = board_size.x - 1; }
             if (head.y < 0) { head.y = board_size.y - 1; }
             if (head.x > board_size.x - 1) { head.x = 0; }
@@ -53,7 +53,7 @@
 
         return {
             step: function step() {
-                move(head, speed);
+                move(head, direction);
                 check_collisions(head, tail);
                 check_if_eat(head, apple);
                 change_size(tail);
@@ -66,16 +66,16 @@
                 if (!moved) return;
                 switch (evt.keyCode) {
                     case 37: // Left arrow
-                        if (speed.x == 0) { speed.x = -1; speed.y = 0; }
+                        if (direction.x == 0) { direction.x = -1; direction.y = 0; }
                         break;
                     case 38: // Up arrow
-                        if (speed.y == 0) { speed.x = 0; speed.y = -1; }
+                        if (direction.y == 0) { direction.x = 0; direction.y = -1; }
                         break;
                     case 39: // Right arrow
-                        if (speed.x == 0) { speed.x = 1; speed.y = 0; }
+                        if (direction.x == 0) { direction.x = 1; direction.y = 0; }
                         break;
                     case 40: // Down arrow
-                        if (speed.y == 0) { speed.x = 0; speed.y = 1; }
+                        if (direction.y == 0) { direction.x = 0; direction.y = 1; }
                         break;
                 }
                 moved = false;

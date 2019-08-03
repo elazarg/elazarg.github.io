@@ -9,13 +9,18 @@
         apple_color: "red"
     };
 
+    parameters = {
+        additional_tail_size_when_eating: 1,
+        starting_tail_size: 5
+    };
+
     function game() {
         // start the game
         var head = middle_of_the_board();
-        var tail = [];
-        var apple = random_location_on_board();
+        var tail = [head];
+        var apple = head;
         var direction = { x: 0, y : 0 };
-        var maximum_tail_size = 5;
+        var maximum_tail_size = 0;
         var moved = true;
 
 
@@ -29,17 +34,16 @@
         }
 
         function check_collisions(head, tail) {
-            for (p of tail) {
-                let collision = equal(head, p);
-                if (collision) {
-                    maximum_tail_size = 5;
+            for (point of tail) {
+                if (equal(head, point)) {
+                    maximum_tail_size = parameters.starting_tail_size;
                 }
             }
         }
 
         function check_if_eat(head, old_apple) {
             if (equal(head, old_apple)) {
-                maximum_tail_size += 1;
+                maximum_tail_size += parameters.additional_tail_size_when_eating;
                 apple = random_location_on_board();
             }
         }
@@ -123,8 +127,8 @@
         ctx.fillStyle = style.background_color;
         ctx.fillRect(0, 0, style.size_of_cell * board_size.x + 1, style.size_of_cell * board_size.y + 1);
 
-        for (p of tail) {
-            draw_square(p, style.tail_color);
+        for (point of tail) {
+            draw_square(point, style.tail_color);
         }
         draw_square(head, style.head_color);
         draw_square(apple, style.apple_color);

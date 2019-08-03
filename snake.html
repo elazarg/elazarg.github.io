@@ -1,96 +1,134 @@
 <!-- based on https://www.youtube.com/watch?v=xGmXxpIj6vs -->
 <canvas id="gc"></canvas>
 <script>
-    function game(canv) {
+    style = {
+        size_of_cell: 20,
+        background_color: "black",
+        tail_color: "lime",
+        head_color: "white",
+        apple_color: "red"
+    };
 
-        gs = 20;
-        tcx = Math.floor(canv.width / gs - 1);
-        tcy = Math.floor(canv.height / gs - 1);
+    function game(canvas) {
+        // start the game
+        var head = middle_of_the_board();
+        var tail = [];
+        var apple = random_location_on_board();
+        var speed = { x: 0, y : 0 };
+        var maximum_tail_size = 5;
+        var moved = true;
 
-        px = Math.floor(tcx / 2);
-        py = Math.floor(tcy / 2);
-        ax = ay = 0;
-        function put_apple() {
-            ax = Math.floor(Math.random() * tcx);
-            ay = Math.floor(Math.random() * tcy);
+
+        function move(head, speed) {
+            head.x += speed.x;
+            head.y += speed.y;
+            if (head.x < 0) { head.x = board_size.x - 1; }
+            if (head.y < 0) { head.y = board_size.y - 1; }
+            if (head.x > board_size.x - 1) { head.x = 0; }
+            if (head.y > board_size.y - 1) { head.y = 0; }
         }
-        xv = yv = 0;
-        trail = [];
-        tail = 5;
-        moved = true;
-        put_apple();
-        function draw_square(px, py, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(px * gs + 1, py * gs + 1, gs - 1, gs - 1);
+
+        function check_collisions(head, tail) {
+            for (p of tail) {
+                let collision = equal(head, p);
+                if (collision) {
+                    maximum_tail_size = 5;
+                }
+            }
+        }
+
+        function check_if_eat(head, old_apple) {
+            if (equal(head, old_apple)) {
+                maximum_tail_size += 1;
+                apple = random_location_on_board();
+            }
+        }
+
+        function change_size(tail) {
+            tail.push({ x: head.x, y: head.y });
+            while (tail.length > maximum_tail_size) {
+                tail.shift();
+            }
         }
 
         return {
+            step: function step() {
+                move(head, speed);
+                check_collisions(head, tail);
+                check_if_eat(head, apple);
+                change_size(tail);
+
+                draw_board(head, tail, apple);
+
+                moved = true;
+            },
             keyPush: function keyPush(evt) {
                 if (!moved) return;
                 switch (evt.keyCode) {
-                    case 37:
-                        if (xv == 0) { xv = -1; yv = 0; }
+                    case 37: // Left arrow
+                        if (speed.x == 0) { speed.x = -1; speed.y = 0; }
                         break;
-                    case 38:
-                        if (yv == 0) { xv = 0; yv = -1; }
+                    case 38: // Up arrow
+                        if (speed.y == 0) { speed.x = 0; speed.y = -1; }
                         break;
-                    case 39:
-                        if (xv == 0) { xv = 1; yv = 0; }
+                    case 39: // Right arrow
+                        if (speed.x == 0) { speed.x = 1; speed.y = 0; }
                         break;
-                    case 40:
-                        if (yv == 0) { xv = 0; yv = 1; }
+                    case 40: // Down arrow
+                        if (speed.y == 0) { speed.x = 0; speed.y = 1; }
                         break;
                 }
                 moved = false;
-            },
-            step: function step() {
-                moved = true;
-                px += xv;
-                py += yv;
-                if (px < 0) {
-                    px = tcx - 1;
-                }
-                if (px > tcx - 1) {
-                    px = 0;
-                }
-                if (py < 0) {
-                    py = tcy - 1;
-                }
-                if (py > tcy - 1) {
-                    py = 0;
-                }
-                ctx.fillStyle = "black";
-                ctx.fillRect(0, 0, gs * tcx, gs * tcy);
-
-                for (var i = 0; i < trail.length; i++) {
-                    draw_square(trail[i].x, trail[i].y, "lime");
-                    if (trail[i].x == px && trail[i].y == py) {
-                        tail = 5;
-                    }
-                }
-                draw_square(px, py, "white");
-                trail.push({ x: px, y: py });
-                while (trail.length > tail) {
-                    trail.shift();
-                }
-
-                if (ax == px && ay == py) {
-                    tail++;
-                    put_apple();
-                }
-                draw_square(ax, ay, "red");
             }
         }
     }
     function restart() {
-        canv = document.getElementById("gc");
-        ctx = canv.getContext("2d");
-        canv.width = document.body.clientWidth - 20;
-        canv.height = document.body.clientHeight - 20;
-        g = game(canv);
+        canvas = document.getElementById("gc");
+        canvas.width = document.body.clientWidth - 25;
+        canvas.height = document.body.clientHeight - 25;
+        board_size = calculate_board_size(canvas, style.size_of_cell);
+        g = game(canvas);
         document.addEventListener("keydown", g.keyPush);
-        setInterval(g.step, 1000 / 10); // /15
+        setInterval(g.step, 100); // miliseconds
     }
     window.onload = restart;
     window.onresize = restart;
+
+
+    function middle_of_the_board() {
+            return { x: floor(board_size.x / 2),
+                     y: floor(board_size.y / 2)};
+    }
+    function random_location_on_board() {
+        return { x: floor(random() * board_size.x),
+                    y: floor(random() * board_size.y) };
+    }
+    function calculate_board_size(canvas, size_of_cell) {
+        return { x: floor(canvas.width / size_of_cell - 1),
+                 y: floor(canvas.height / size_of_cell - 1) };
+    }
+
+    function draw_board(head, tail, apple) {
+        const ctx = canvas.getContext("2d");
+        function draw_square(point, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(point.x * style.size_of_cell + 1,
+                            point.y * style.size_of_cell + 1,
+                            style.size_of_cell - 1,
+                            style.size_of_cell - 1);
+        }
+        ctx.fillStyle = style.background_color;
+        ctx.fillRect(0, 0, style.size_of_cell * board_size.x + 1, style.size_of_cell * board_size.y + 1);
+
+        for (p of tail) {
+            draw_square(p, style.tail_color);
+        }
+        draw_square(head, style.head_color);
+        draw_square(apple, style.apple_color);
+    }
+
+    function equal(point1, point2) { return point1.x == point2.x && point1.y == point2.y; }
+    floor = Math.floor;
+    random = Math.random;
+
 </script>

@@ -9,7 +9,7 @@
         apple_color: "red"
     };
 
-    function game(canvas) {
+    function game() {
         // start the game
         var head = middle_of_the_board();
         var tail = [];
@@ -82,12 +82,13 @@
             }
         }
     }
+
     function restart() {
         canvas = document.getElementById("gc");
         canvas.width = document.body.clientWidth - 25;
         canvas.height = document.body.clientHeight - 25;
-        board_size = calculate_board_size(canvas, style.size_of_cell);
-        g = game(canvas);
+        board_size = calculate_board_size();
+        g = game();
         document.addEventListener("keydown", g.keyPush);
         setInterval(g.step, 100); // miliseconds
     }
@@ -99,13 +100,15 @@
             return { x: floor(board_size.x / 2),
                      y: floor(board_size.y / 2)};
     }
+
     function random_location_on_board() {
         return { x: floor(random() * board_size.x),
                     y: floor(random() * board_size.y) };
     }
-    function calculate_board_size(canvas, size_of_cell) {
-        return { x: floor(canvas.width / size_of_cell - 1),
-                 y: floor(canvas.height / size_of_cell - 1) };
+
+    function calculate_board_size() {
+        return { x: floor(canvas.width / style.size_of_cell - 1),
+                 y: floor(canvas.height / style.size_of_cell - 1) };
     }
 
     function draw_board(head, tail, apple) {

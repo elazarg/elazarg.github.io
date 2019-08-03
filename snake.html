@@ -87,7 +87,7 @@
         }
     }
 
-    function restart() {
+    window.onload = function() {
         canvas = document.getElementById("gc");
         canvas.width = document.body.clientWidth - 25;
         canvas.height = document.body.clientHeight - 25;
@@ -96,8 +96,7 @@
         document.addEventListener("keydown", g.keyPush);
         setInterval(g.step, 100); // miliseconds
     }
-    window.onload = restart;
-    window.onresize = restart;
+    window.onresize = function () { location.reload(); };
 
 
     function middle_of_the_board() {

@@ -4,56 +4,68 @@
         size_of_cell: 20,
         background_color: "black",
         player_a_color: "blue",
-        player_b_color: "red"
+        player_b_color: "red",
+        threatened: "purple"
     };
     parameters = {
         board_size: 10
     };
+                 
+    function gather_from(board, from, player, direction) {
+        let tmp = [];
+        let p = {x: from.x, y: from.y};
+        while (true) {
+            p.x += direction.x;
+            p.y += direction.y;
+            if (board[p.x][p.y] !== !player)
+                break;
+            tmp.push({x: p.x, y: p.y});
+        }
+        if (board[p.x][p.y] !== player) {
+            return [];
+        }
+        return tmp;
+    }
+
+    function gather_all(board, from, player) {
+            function gather(direction) { return gather_from(board, from, player, direction); }
+            return [].concat(
+                gather({x:  0, y: -1}),
+                gather({x:  1, y: -1}),
+                gather({x:  1, y:  0}),
+                gather({x:  1, y:  1}),
+                gather({x:  0, y:  1}),
+                gather({x: -1, y:  1}),
+                gather({x: -1, y:  0}),
+                gather({x: -1, y: -1})
+            );
+        }
     function game() {
         // start the game
         const board = create_array(parameters.board_size);
-        board[4][4] = true;
-        board[5][5] = true;
-        board[4][5] = false;
-        board[5][4] = false;
+        initialize_board(board);
+
+        function get_cell_from_mouse(x, y) {
+            const from = {x: Math.floor(x / style.size_of_cell),
+                          y: Math.floor(y / style.size_of_cell)};
+            if (from.x >= parameters.board_size || from.y >= parameters.board_size)
+                return;
+            if (from.x < 0 || from.y < 0)
+                return;
+            if (board[from.x][from.y] !== undefined)
+                return;
+            return from;
+        }
+
         let current_player = true;
         draw_board(board);
-
+               
         return {
-            mouseClick: function mouseClick(evt) {
-                const from = {x: Math.floor(evt.pageX / style.size_of_cell),
-                              y: Math.floor(evt.pageY / style.size_of_cell)};
-                if (from.x >= parameters.board_size || from.y >= parameters.board_size)
-                    return;
-                if (from.x < 0 || from.y < 0)
-                    return;
-                if (board[from.x][from.y] !== undefined) return;
-                            
-                function gather(direction) {
-                    let tmp = [];
-                    let current = {x: from.x, y: from.y};
-                    while (true) {
-                        current.x += direction.x;
-                        current.y += direction.y;
-                        if (board[current.x][current.y] !== !current_player)
-                            break;
-                        tmp.push({x: current.x, y: current.y});
-                    }
-                    if (board[current.x][current.y] !== current_player) {
-                        return [];
-                    }
-                    return tmp;
-                }
-                let conquered = [].concat(
-                    gather({x:  0, y: -1}),
-                    gather({x:  1, y: -1}),
-                    gather({x:  1, y:  0}),
-                    gather({x:  1, y:  1}),
-                    gather({x:  0, y:  1}),
-                    gather({x: -1, y:  1}),
-                    gather({x: -1, y:  0}),
-                    gather({x: -1, y: -1})
-                );
+            mouseClick: function(evt) {
+                const from = get_cell_from_mouse(evt.pageX, evt.pageY);
+                if (!from) return;
+
+                let conquered = gather_all(board, from, current_player);
                 if (conquered.length === 0)
                     return;
                 for (p of conquered) {
@@ -62,38 +74,85 @@
                 board[from.x][from.y] = current_player;
                 draw_board(board);
                 current_player = !current_player;
+            },
+            mouseover: function(evt) {
+                draw_board(board);
+                canvas.style.cursor = 'not-allowed';
+                const from = get_cell_from_mouse(evt.clientX, evt.clientY);
+                if (!from) {
+                    return;
+                }
+                draw_hollowed_square_ctx(from, current_player);
+                let threatened = gather_all(board, from, current_player);
+                if (threatened.length === 0)
+                    return;
+                canvas.style.cursor = 'cell';
+                draw_threatened(current_player, threatened);
             }
         }
     }
+
     window.onload = function() {
         canvas = document.getElementById("gc");
         canvas.width = document.body.clientWidth - 25;
         canvas.height = document.body.clientHeight - 25;
+        // canvas.style.cursor = 'none';
         style.size_of_cell = Math.floor(Math.min(canvas.width, canvas.height) / parameters.board_size - 1);
         g = game();
-        document.addEventListener("click", g.mouseClick);
+        canvas.addEventListener("click", g.mouseClick);
+        canvas.addEventListener("mousemove", g.mouseover);
     }
+
+    function draw_square_ctx(ctx, point, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(point.x * style.size_of_cell + 1,
+                        point.y * style.size_of_cell + 1,
+                        style.size_of_cell - 1,
+                        style.size_of_cell - 1);
+    }
+
+    function draw_hollowed_square_ctx(point, player) {
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = player_color(player);
+        ctx.fillRect(point.x * style.size_of_cell + 1,
+                     point.y * style.size_of_cell + 1,
+                     style.size_of_cell - 1,
+                     style.size_of_cell - 1);
+                        
+        ctx.fillStyle = style.background_color;
+        ctx.fillRect(point.x * style.size_of_cell + 6,
+                     point.y * style.size_of_cell + 6,
+                     style.size_of_cell - 12,
+                     style.size_of_cell - 12);
+    }
+
+    function player_color(player) {
+        if (player === true ) return style.player_a_color;
+        if (player === false) return style.player_b_color;
+        return style.background_color;
+    }
+
     function draw_board(board) {
         const ctx = canvas.getContext("2d");
-        function draw_square(point, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(point.x * style.size_of_cell + 1,
-                         point.y * style.size_of_cell + 1,
-                         style.size_of_cell - 1,
-                         style.size_of_cell - 1);
-        }
+        function draw_square(point, color) { return draw_square_ctx(ctx, point, color); }
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, style.size_of_cell * parameters.board_size + 1, style.size_of_cell * parameters.board_size + 1);
         
         for (let i=0; i < parameters.board_size; i++) {
             for (let j=0; j < parameters.board_size; j++) {
                 const v = board[i][j];
-                if (v === true) draw_square({x: i, y: j}, style.player_a_color)
-                else if (v === false) draw_square({x: i, y: j}, style.player_b_color)
-                else draw_square({x: i, y: j}, style.background_color);
+                draw_square({x: i, y: j}, player_color(v));
             }
         }
     }
+
+    function draw_threatened(player, threatened) {
+        const ctx = canvas.getContext("2d");
+        function draw_square(point, color) { return draw_square_ctx(ctx, point, color); }
+        for (p of threatened)
+            draw_square(p, style.threatened);
+    }
+
     function equal(point1, point2) { return point1.x == point2.x && point1.y == point2.y; }
 
     function create_array(n) {
@@ -104,5 +163,12 @@
             arr[i][n] = undefined;
         }
         return arr;
+    }
+
+    function initialize_board(board) {
+        const mid1 = Math.floor(board.length / 2);
+        const mid0 = mid1 - 1;
+        board[mid0][mid0] = board[mid1][mid1] = true;
+        board[mid0][mid1] = board[mid1][mid0] = false;
     }
 </script>

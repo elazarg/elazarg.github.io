@@ -92,11 +92,11 @@
                     let [blues, reds] = find_pieces(board);
                     const victorious = blues.length === reds.length ? null : blues.length > reds.length;
                     draw_score(board, victorious);
-                    game_over(board);
+                    game_over(board, victorious);
                     return;
                 }
                 draw_score(board, current_player);
-                game_over(board);
+                game_over(board, victorious);
             },
             mouseover: function(evt) {
                 board_canvas.style.cursor = 'not-allowed';

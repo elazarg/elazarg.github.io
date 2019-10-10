@@ -144,7 +144,7 @@
                       (point.y + 0.5) * style.size_of_cell, radius, 0, 2 * Math.PI, false);
         board_ctx.fillStyle = color;
         board_ctx.fill();
-        board_ctx.lineWidth = 3;
+        board_ctx.lineWidth = 2;
         board_ctx.strokeStyle = '#003300';
         board_ctx.stroke();
     }
@@ -166,7 +166,7 @@
             for (p of points) {
                 draw_circle(p, color, size);
             }
-            if (size < style.size_of_cell / 2 - 1) {
+            if (size < style.size_of_cell / 2 - 2) {
                 window.setTimeout(run, 6);
             } else {
                 draw_board(board, player);

@@ -96,6 +96,7 @@
                     return;
                 }
                 draw_score(board, current_player);
+                game_over(board);
             },
             mouseover: function(evt) {
                 board_canvas.style.cursor = 'not-allowed';
@@ -267,7 +268,7 @@
     }
 
     function game_over(board, victorious) {
-        details_ctx.font = "" + 60 + "px " + style.font;
+        details_ctx.font = "" + style.size_of_cell / 2 + "px " + style.font;
         details_ctx.textAlign = "center";
         let text = victorious === null ? "Draw!"
                  : victorious ? "Player A won!"

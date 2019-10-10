@@ -2,12 +2,12 @@
      name='viewport' 
      content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
 />
-<canvas id="board"></canvas>
-<canvas id="details"></canvas>
+<canvas style="display: block; margin: auto; padding: 0;" id="board"></canvas>
+<canvas style="display: block; margin: auto; padding: 0;" id="details"></canvas>
 <script>
     style = {
         size_of_cell: 20,
-        board_background_color: "#2F2F2F",
+        board_background_color: "#232b2b",
         description_background_color: "#2F2F2F",
         player_a_color: "#8a9a5b",
         player_b_color: "#8a5b99", // "#6a5b99",
@@ -17,7 +17,7 @@
     parameters = {
         board_size: 8
     };
-    document.body.style.backgroundColor = style.board_background_color;
+    document.body.style.backgroundColor = "#fdfdfd";
     function gather_from(board, from, player, direction) {
         let tmp = [];
         let p = {x: from.x, y: from.y};
@@ -51,7 +51,12 @@
         const board = create_array(parameters.board_size);
         initialize_board(board);
 
-        function get_cell_from_mouse(x, y) {
+        function get_cell_from_mouse(event) {
+            // see https://stackoverflow.com/questions/42216411/dynamically-set-a-canvas-width-to-exactly-equal-the-height-without-scaling-disto
+            var bounds = board_canvas.getBoundingClientRect();
+            let x = (event.pageX - bounds.left - scrollX) / bounds.width  * board_canvas.width;
+            let y = (event.pageY - bounds.top  - scrollY) / bounds.height * board_canvas.height;
+
             const from = {x: Math.floor(x / style.size_of_cell),
                           y: Math.floor(y / style.size_of_cell)};
             if (from.x >= parameters.board_size || from.y >= parameters.board_size)
@@ -72,7 +77,7 @@
             mouseClick: function(evt) {
                 draw_score(board, current_player);
                 draw_board(board, current_player);
-                const from = get_cell_from_mouse(evt.pageX, evt.pageY);
+                const from = get_cell_from_mouse(evt);
                 if (!from) return;
 
                 let conquered = gather_all(board, from, current_player);
@@ -99,7 +104,7 @@
             },
             mouseover: function(evt) {
                 board_canvas.style.cursor = 'not-allowed';
-                const from = get_cell_from_mouse(evt.clientX, evt.clientY);
+                const from = get_cell_from_mouse(evt);
                 if (!from) {
                     return;
                 }
@@ -118,12 +123,14 @@
         board_canvas = document.getElementById("board");
         details_canvas = document.getElementById("details");
 
-        board_canvas.width = document.body.clientWidth - 25;
-        board_canvas.height = Math.floor((document.body.clientHeight - 25) * 0.85);
+        board_canvas.width = board_canvas.height = Math.min(
+            document.body.clientWidth - 25,
+            Math.floor((document.body.clientHeight - 25) * 0.85)
+        );
 
         style.size_of_cell = Math.floor(Math.min(board_canvas.width, board_canvas.height) / parameters.board_size - 1);
 
-        details_canvas.width = style.size_of_cell * parameters.board_size;
+        details_canvas.width = board_canvas.width;
         details_canvas.height = Math.floor((document.body.clientHeight - 25) * 0.15);
 
         board_ctx = board_canvas.getContext("2d");

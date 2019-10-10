@@ -3,10 +3,12 @@
 <script>
     style = {
         size_of_cell: 20,
-        background_color: "black",
-        player_a_color: "green",
-        player_b_color: "red",
-        threatened: "purple"
+        board_background_color: "black",
+        description_background_color: "black",
+        player_a_color: "#8a9a5b",
+        player_b_color: "#8a5b99", // "#6a5b99",
+        font: "Comic Sans MS",
+        threatened: "#5b6a99"
     };
     parameters = {
         board_size: 8
@@ -42,7 +44,6 @@
         );
     }
     function game() {
-        // start the game
         const board = create_array(parameters.board_size);
         initialize_board(board);
 
@@ -62,29 +63,6 @@
         draw_board(board);
         draw_score(board, current_player);
 
-        function fill_animate(points, player) {
-            const step = 3;
-            let start = style.size_of_cell / 2;
-            let size = 1;
-            let color = player_color(player);
-            function run() {
-                start -= step;
-                size += 2 * step;
-                for (p of points) {
-                    board_ctx.fillStyle = color;
-                    board_ctx.fillRect(p.x * style.size_of_cell + start,
-                                       p.y * style.size_of_cell + start,
-                                       size,
-                                       size);
-                }
-                if (size < style.size_of_cell - step) {
-                    window.setTimeout(run, 10);
-                } else {
-                    draw_board(board, player);
-                }
-            }
-            return run;
-        }
         return {
             mouseClick: function(evt) {
                 draw_score(board, current_player);
@@ -99,8 +77,8 @@
                     board[p.x][p.y] = current_player;
                 }
                 board[from.x][from.y] = current_player;
-                window.setTimeout(fill_animate([from], current_player), 10);
-                window.setTimeout(fill_animate(conquered, current_player), 10);
+                window.setTimeout(fill_animate(board, [from], current_player), 10);
+                window.setTimeout(fill_animate(board, conquered, current_player), 10);
 
                 current_player = !current_player;
                 draw_score(board, current_player);
@@ -136,28 +114,61 @@
 
         board_ctx = board_canvas.getContext("2d");
         details_ctx = details_canvas.getContext("2d");
-        // board_canvas.style.cursor = 'none';
         g = game();
         board_canvas.addEventListener("click", g.mouseClick);
         board_canvas.addEventListener("mousemove", g.mouseover);
     }
 
-    function draw_square(point, color) {
+    function draw_piece(point, color) {
+        draw_empty(point);
+        draw_circle(point, color, style.size_of_cell / 2 - 4);
+    }
+
+    function draw_circle(point, color, radius) {
+        board_ctx.beginPath();
+        board_ctx.arc((point.x + 0.5) * style.size_of_cell + 1,
+                      (point.y + 0.5) * style.size_of_cell, radius, 0, 2 * Math.PI, false);
         board_ctx.fillStyle = color;
+        board_ctx.fill();
+        board_ctx.lineWidth = 3;
+        board_ctx.strokeStyle = '#003300';
+        board_ctx.stroke();
+    }
+
+    function draw_empty(point) {
+        board_ctx.fillStyle = style.board_background_color;
         board_ctx.fillRect(point.x * style.size_of_cell + 1,
                            point.y * style.size_of_cell + 1,
                            style.size_of_cell - 1,
                            style.size_of_cell - 1);
     }
 
+    function fill_animate(board, points, player) {
+        const step = 1;
+        let size = 1;
+        const color = player_color(player);
+        function run() {
+            size += step;
+            for (p of points) {
+                draw_circle(p, color, size);
+            }
+            if (size < style.size_of_cell / 2 - 1) {
+                window.setTimeout(run, 10);
+            } else {
+                draw_board(board, player);
+            }
+        }
+        return run;
+    }
+    
     function draw_hollowed_square(point, player) {
         board_ctx.fillStyle = player_color(player);
         board_ctx.fillRect(point.x * style.size_of_cell + 1,
-                     point.y * style.size_of_cell + 1,
-                     style.size_of_cell - 1,
-                     style.size_of_cell - 1);
+                            point.y * style.size_of_cell + 1,
+                            style.size_of_cell - 1,
+                            style.size_of_cell - 1);
                         
-        board_ctx.fillStyle = style.background_color;
+        board_ctx.fillStyle = style.board_background_color;
         board_ctx.fillRect(point.x * style.size_of_cell + 6,
                      point.y * style.size_of_cell + 6,
                      style.size_of_cell - 12,
@@ -167,7 +178,7 @@
     function player_color(player) {
         if (player === true ) return style.player_a_color;
         if (player === false) return style.player_b_color;
-        return style.background_color;
+        return style.board_background_color;
     }
 
     function draw_board(board, player) {
@@ -178,7 +189,10 @@
         for (let i=0; i < parameters.board_size; i++) {
             for (let j=0; j < parameters.board_size; j++) {
                 const v = board[i][j];
-                draw_square({x: i, y: j}, player_color(v));
+                if (v === true || v === false)
+                    draw_piece({x: i, y: j}, player_color(v));
+                else
+                    draw_empty({x: i, y: j});
             }
         }
     }
@@ -194,36 +208,22 @@
             }
         }
 
-        details_ctx.fillStyle = "black";
+        details_ctx.fillStyle = style.description_background_color;
         details_ctx.fillRect(0, 0, details_canvas.width, details_canvas.height);
-        details_ctx.font = "" + style.size_of_cell + "px Comic Sans MS";
-        details_ctx.fillStyle = "green";
+        details_ctx.font = "" + style.size_of_cell + "px " + style.font;
+        details_ctx.fillStyle = player_color(true);
         details_ctx.textAlign = "center";
         details_ctx.fillText(blues, details_canvas.width/3, style.size_of_cell - 10);
-        details_ctx.fillStyle = "red";
+        details_ctx.fillStyle = player_color(false);
         details_ctx.fillText(reds, 2 * details_canvas.width/3, style.size_of_cell - 10);
         
         details_ctx.fillStyle = "white";
         details_ctx.fillText("^", (player === false ? 2 : 1) * details_canvas.width/3, 2 * style.size_of_cell - 10);
     }
 
-    function draw_details(board) {
-        board_ctx.fillStyle = "white";
-        board_ctx.fillRect(0, 0,
-                     style.size_of_cell * parameters.board_size + 1,
-                     style.size_of_cell * parameters.board_size + 1);
-        
-        for (let i=0; i < parameters.board_size; i++) {
-            for (let j=0; j < parameters.board_size; j++) {
-                const v = board[i][j];
-                draw_square({x: i, y: j}, player_color(v));
-            }
-        }
-    }
-
     function draw_threatened(player, threatened) {
         for (p of threatened)
-            draw_square(p, style.threatened);
+            draw_piece(p, style.threatened);
     }
 
     function equal(point1, point2) { return point1.x == point2.x && point1.y == point2.y; }

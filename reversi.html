@@ -1,10 +1,14 @@
+<meta 
+     name='viewport' 
+     content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
+/>
 <canvas id="board"></canvas>
 <canvas id="details"></canvas>
 <script>
     style = {
         size_of_cell: 20,
-        board_background_color: "black",
-        description_background_color: "black",
+        board_background_color: "#2F2F2F",
+        description_background_color: "#2F2F2F",
         player_a_color: "#8a9a5b",
         player_b_color: "#8a5b99", // "#6a5b99",
         font: "Comic Sans MS",
@@ -54,12 +58,13 @@
                 return;
             if (from.x < 0 || from.y < 0)
                 return;
-            if (board[from.x][from.y] !== undefined)
+            if (board[from.x][from.y] !== null)
                 return;
             return from;
         }
 
         let current_player = true;
+        let available_moves = find_moves(board, true);
         draw_board(board);
         draw_score(board, current_player);
 
@@ -81,6 +86,15 @@
                 window.setTimeout(fill_animate(board, conquered, current_player), 0);
 
                 current_player = !current_player;
+                
+                available_moves = find_moves(board, current_player);
+                if (available_moves.length == 0) {
+                    let [blues, reds] = find_pieces(board);
+                    const victorious = blues.length === reds.length ? null : blues.length > reds.length;
+                    draw_score(board, victorious);
+                    game_over(board);
+                    return;
+                }
                 draw_score(board, current_player);
             },
             mouseover: function(evt) {
@@ -189,7 +203,7 @@
         for (let i=0; i < parameters.board_size; i++) {
             for (let j=0; j < parameters.board_size; j++) {
                 const v = board[i][j];
-                if (v === true || v === false)
+                if (v !== null)
                     draw_piece({x: i, y: j}, player_color(v));
                 else
                     draw_empty({x: i, y: j});
@@ -197,28 +211,69 @@
         }
     }
     
-    function draw_score(board, player) {
-        let blues = 0;
-        let reds = 0;
+    function find_pieces(board) {
+        let blues = [];
+        let reds = [];
         for (let i=0; i < parameters.board_size; i++) {
             for (let j=0; j < parameters.board_size; j++) {
                 const v = board[i][j];
-                if (v === true) blues++;
-                if (v === false) reds++;
+                if (v === true) blues.push(v);
+                if (v === false) reds.push(v);
             }
         }
+        return [blues, reds];
+    }
+
+    function find_moves(board, player) {
+        let res = [];
+        for (let x=0; x < parameters.board_size; x++) {
+            for (let y=0; y < parameters.board_size; y++) {
+                const v = board[x][y];
+                if (v === null) {
+                    if (gather_all(board, {x, y}, player).length > 0)
+                        res.push({x, y});
+                }
+            }
+        }
+        return res;
+    }
+
+    function draw_score(board, player) {
+        let [blues, reds] = find_pieces(board);
 
         details_ctx.fillStyle = style.description_background_color;
         details_ctx.fillRect(0, 0, details_canvas.width, details_canvas.height);
+
         details_ctx.font = "" + style.size_of_cell + "px " + style.font;
-        details_ctx.fillStyle = player_color(true);
         details_ctx.textAlign = "center";
-        details_ctx.fillText(blues, details_canvas.width/3, style.size_of_cell - 10);
+        details_ctx.textBaseline = "top";
+        function xloc(player) {
+            const pad = 20;
+            const width = details_ctx.measureText(blues.length).width / 2 + 30;
+            if (player == null) return details_canvas.width / 2;
+            if (player) return width;
+            return details_canvas.width - width;
+        }
+        const top = 20;
+
+        details_ctx.fillStyle = player_color(true);
+        details_ctx.fillText(blues.length, xloc(true), top);
+
         details_ctx.fillStyle = player_color(false);
-        details_ctx.fillText(reds, 2 * details_canvas.width/3, style.size_of_cell - 10);
+        details_ctx.fillText(reds.length, xloc(false), top);
         
-        details_ctx.fillStyle = "white";
-        details_ctx.fillText("^", (player === false ? 2 : 1) * details_canvas.width/3, 2 * style.size_of_cell - 10);
+        details_ctx.fillStyle = "lightgray";
+        details_ctx.fillText("^", xloc(player), style.size_of_cell + 10);
+    }
+
+    function game_over(board, victorious) {
+        details_ctx.font = "" + 60 + "px " + style.font;
+        details_ctx.textAlign = "center";
+        let text = victorious === null ? "Draw!"
+                 : victorious ? "Player A won!"
+                 : "Player B won!";
+        details_ctx.fillStyle = "#ECD164";
+        details_ctx.fillText(text, details_canvas.width / 2, details_canvas.height / 3);
     }
 
     function draw_threatened(player, threatened) {
@@ -226,14 +281,12 @@
             draw_piece(p, style.threatened);
     }
 
-    function equal(point1, point2) { return point1.x == point2.x && point1.y == point2.y; }
-
     function create_array(n) {
         let arr = new Array(n);
         for (let i=-1; i < n + 1; i++) {
             arr[i] = new Array(n);
-            arr[i][-1] = undefined;
-            arr[i][n] = undefined;
+            for (let j=-1; j < n+1; j++)
+                arr[i][j] = null;
         }
         return arr;
     }

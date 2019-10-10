@@ -60,6 +60,7 @@
 
         let current_player = true;
         draw_board(board);
+        draw_score(board, current_player);
 
         function fill_animate(points, player) {
             const step = 3;
@@ -86,6 +87,7 @@
         }
         return {
             mouseClick: function(evt) {
+                draw_score(board, current_player);
                 draw_board(board, current_player);
                 const from = get_cell_from_mouse(evt.pageX, evt.pageY);
                 if (!from) return;
@@ -101,6 +103,7 @@
                 window.setTimeout(fill_animate(conquered, current_player), 10);
 
                 current_player = !current_player;
+                draw_score(board, current_player);
             },
             mouseover: function(evt) {
                 board_canvas.style.cursor = 'not-allowed';
@@ -172,12 +175,20 @@
         board_ctx.fillRect(0, 0,
                      style.size_of_cell * parameters.board_size + 1,
                      style.size_of_cell * parameters.board_size + 1);
+        for (let i=0; i < parameters.board_size; i++) {
+            for (let j=0; j < parameters.board_size; j++) {
+                const v = board[i][j];
+                draw_square({x: i, y: j}, player_color(v));
+            }
+        }
+    }
+    
+    function draw_score(board, player) {
         let blues = 0;
         let reds = 0;
         for (let i=0; i < parameters.board_size; i++) {
             for (let j=0; j < parameters.board_size; j++) {
                 const v = board[i][j];
-                draw_square({x: i, y: j}, player_color(v));
                 if (v === true) blues++;
                 if (v === false) reds++;
             }

@@ -3,7 +3,6 @@
      content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
 />
 <canvas style="display: block; margin: auto; padding: 0;" id="board"></canvas>
-<canvas style="display: block; margin: auto; padding: 0;" id="details"></canvas>
 <script>
     style = {
         size_of_cell: 20,
@@ -53,9 +52,9 @@
 
         function get_cell_from_mouse(event) {
             // see https://stackoverflow.com/questions/42216411/dynamically-set-a-canvas-width-to-exactly-equal-the-height-without-scaling-disto
-            var bounds = board_canvas.getBoundingClientRect();
-            let x = (event.pageX - bounds.left - scrollX) / bounds.width  * board_canvas.width;
-            let y = (event.pageY - bounds.top  - scrollY) / bounds.height * board_canvas.height;
+            var bounds = canvas.getBoundingClientRect();
+            let x = (event.pageX - bounds.left - scrollX) / bounds.width  * canvas.width;
+            let y = (event.pageY - bounds.top  - scrollY) / bounds.height * canvas.height;
 
             const from = {x: Math.floor(x / style.size_of_cell),
                           y: Math.floor(y / style.size_of_cell)};
@@ -72,72 +71,72 @@
         let available_moves = find_moves(board, true);
         draw_board(board);
         draw_score(board, current_player);
+        
+        function mouseClick(evt) {
+            draw_score(board, current_player);
+            draw_board(board, current_player);
+            const from = get_cell_from_mouse(evt);
+            if (!from) return;
 
-        return {
-            mouseClick: function(evt) {
-                draw_score(board, current_player);
-                draw_board(board, current_player);
-                const from = get_cell_from_mouse(evt);
-                if (!from) return;
-
-                let conquered = gather_all(board, from, current_player);
-                if (conquered.length === 0)
-                    return;
-                for (p of conquered) {
-                    board[p.x][p.y] = current_player;
-                }
-                board[from.x][from.y] = current_player;
-                window.setTimeout(fill_animate(board, [from], current_player), 0);
-                window.setTimeout(fill_animate(board, conquered, current_player), 0);
-
-                current_player = !current_player;
-                
-                available_moves = find_moves(board, current_player);
-                if (available_moves.length == 0) {
-                    let [blues, reds] = find_pieces(board);
-                    const victorious = blues.length === reds.length ? null : blues.length > reds.length;
-                    draw_score(board, victorious);
-                    game_over(board, victorious);
-                    return;
-                }
-                draw_score(board, current_player);
-            },
-            mouseover: function(evt) {
-                board_canvas.style.cursor = 'not-allowed';
-                const from = get_cell_from_mouse(evt);
-                if (!from) {
-                    return;
-                }
-                draw_board(board, current_player);
-                draw_hollowed_square(from, current_player);
-                let threatened = gather_all(board, from, current_player);
-                if (threatened.length === 0)
-                    return;
-                board_canvas.style.cursor = 'cell';
-                draw_threatened(current_player, threatened);
+            let conquered = gather_all(board, from, current_player);
+            if (conquered.length === 0)
+                return;
+            for (p of conquered) {
+                board[p.x][p.y] = current_player;
             }
+            board[from.x][from.y] = current_player;
+            window.setTimeout(fill_animate(board, [from], current_player), 0);
+            window.setTimeout(fill_animate(board, conquered, current_player), 0);
+
+            current_player = !current_player;
+            
+            available_moves = find_moves(board, current_player);
+            if (available_moves.length == 0) {
+                let [blues, reds] = find_pieces(board);
+                const victorious = blues.length === reds.length ? null : blues.length > reds.length;
+                draw_score(board, victorious);
+                game_over(board, victorious);
+                canvas.removeEventListener('click', mouseClick, false)
+                canvas.removeEventListener('mouseover', mouseOver, false)
+                return;
+            }
+            draw_score(board, current_player);
         }
+        
+        function mouseOver(evt) {
+            canvas.style.cursor = 'not-allowed';
+            const from = get_cell_from_mouse(evt);
+            if (!from) {
+                return;
+            }
+            draw_board(board, current_player);
+            draw_hollowed_square(from, current_player);
+            let threatened = gather_all(board, from, current_player);
+            if (threatened.length === 0)
+                return;
+            canvas.style.cursor = 'cell';
+            draw_threatened(current_player, threatened);
+        }
+        
+        return { mouseClick, mouseOver };
     }
 
     window.onload = function() {
-        board_canvas = document.getElementById("board");
-        details_canvas = document.getElementById("details");
+        canvas = document.getElementById("board");
 
-        board_canvas.width = board_canvas.height = Math.min(
-            document.body.clientWidth - 25,
-            Math.floor((document.body.clientHeight - 25) * 0.85)
+        canvas.height = document.body.clientHeight - 25;
+        const base_width = Math.min(
+            document.body.clientWidth,
+            canvas.height * 0.85
         );
+        description_height = canvas.height * 0.85;
+        style.size_of_cell = Math.floor(Math.min(base_width, canvas.height) / parameters.board_size - 1);
+        canvas.width = style.size_of_cell * parameters.board_size;
 
-        style.size_of_cell = Math.floor(Math.min(board_canvas.width, board_canvas.height) / parameters.board_size - 1);
-
-        details_canvas.width = board_canvas.width;
-        details_canvas.height = Math.floor((document.body.clientHeight - 25) * 0.15);
-
-        board_ctx = board_canvas.getContext("2d");
-        details_ctx = details_canvas.getContext("2d");
+        ctx = canvas.getContext("2d");
         g = game();
-        board_canvas.addEventListener("click", g.mouseClick);
-        board_canvas.addEventListener("mousemove", g.mouseover);
+        canvas.addEventListener("click", g.mouseClick);
+        canvas.addEventListener("mousemove", g.mouseover);
     }
 
     function draw_piece(point, color) {
@@ -146,19 +145,19 @@
     }
 
     function draw_circle(point, color, radius) {
-        board_ctx.beginPath();
-        board_ctx.arc((point.x + 0.5) * style.size_of_cell + 1,
+        ctx.beginPath();
+        ctx.arc((point.x + 0.5) * style.size_of_cell + 1,
                       (point.y + 0.5) * style.size_of_cell, radius, 0, 2 * Math.PI, false);
-        board_ctx.fillStyle = color;
-        board_ctx.fill();
-        board_ctx.lineWidth = 2;
-        board_ctx.strokeStyle = '#003300';
-        board_ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#003300';
+        ctx.stroke();
     }
 
     function draw_empty(point) {
-        board_ctx.fillStyle = style.board_background_color;
-        board_ctx.fillRect(point.x * style.size_of_cell + 1,
+        ctx.fillStyle = style.board_background_color;
+        ctx.fillRect(point.x * style.size_of_cell + 1,
                            point.y * style.size_of_cell + 1,
                            style.size_of_cell - 1,
                            style.size_of_cell - 1);
@@ -183,14 +182,14 @@
     }
     
     function draw_hollowed_square(point, player) {
-        board_ctx.fillStyle = player_color(player);
-        board_ctx.fillRect(point.x * style.size_of_cell + 1,
+        ctx.fillStyle = player_color(player);
+        ctx.fillRect(point.x * style.size_of_cell + 1,
                             point.y * style.size_of_cell + 1,
                             style.size_of_cell - 1,
                             style.size_of_cell - 1);
                         
-        board_ctx.fillStyle = style.board_background_color;
-        board_ctx.fillRect(point.x * style.size_of_cell + 6,
+        ctx.fillStyle = style.board_background_color;
+        ctx.fillRect(point.x * style.size_of_cell + 6,
                      point.y * style.size_of_cell + 6,
                      style.size_of_cell - 12,
                      style.size_of_cell - 12);
@@ -203,8 +202,8 @@
     }
 
     function draw_board(board, player) {
-        board_ctx.fillStyle = "white";
-        board_ctx.fillRect(0, 0,
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0,
                      style.size_of_cell * parameters.board_size + 1,
                      style.size_of_cell * parameters.board_size + 1);
         for (let i=0; i < parameters.board_size; i++) {
@@ -248,39 +247,51 @@
     function draw_score(board, player) {
         let [blues, reds] = find_pieces(board);
 
-        details_ctx.fillStyle = style.description_background_color;
-        details_ctx.fillRect(0, 0, details_canvas.width, details_canvas.height);
+        ctx.translate(0, description_height);
 
-        details_ctx.font = "" + style.size_of_cell + "px " + style.font;
-        details_ctx.textAlign = "center";
-        details_ctx.textBaseline = "top";
+        ctx.fillStyle = style.description_background_color;
+        ctx.fillRect(0, 0, canvas.width, canvas.height * 0.15);
+        const score_font_size = canvas.height * 0.10;
+        ctx.font = "" + score_font_size + "px " + style.font;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
         function xloc(player) {
             const pad = 20;
-            const width = details_ctx.measureText(blues.length).width / 2 + 30;
-            if (player == null) return details_canvas.width / 2;
+            const width = ctx.measureText(blues.length).width / 2 + top;
+            if (player == null) return canvas.width / 2;
             if (player) return width;
-            return details_canvas.width - width;
+            return canvas.width - width - top;
         }
-        const top = 20;
+        const top = score_font_size * 0.2;
 
-        details_ctx.fillStyle = player_color(true);
-        details_ctx.fillText(blues.length, xloc(true), top);
+        ctx.fillStyle = player_color(true);
+        ctx.fillText(blues.length, xloc(true), top);
 
-        details_ctx.fillStyle = player_color(false);
-        details_ctx.fillText(reds.length, xloc(false), top);
+        ctx.fillStyle = player_color(false);
+        ctx.fillText(reds.length, xloc(false), top);
         
-        details_ctx.fillStyle = "lightgray";
-        details_ctx.fillText("^", xloc(player), style.size_of_cell + 10);
+        ctx.fillStyle = "lightgray";
+        ctx.fillText("^", xloc(player), score_font_size * 1.2);
+
+        ctx.resetTransform();
     }
 
     function game_over(board, victorious) {
-        details_ctx.font = "" + style.size_of_cell / 2 + "px " + style.font;
-        details_ctx.textAlign = "center";
+        
+        ctx.translate(0, description_height);
+        ctx.textBaseline = "top";
+
+        const score_font_size = canvas.height * 0.10;
+        const top = score_font_size * 0.2;
+        ctx.font = "" + canvas.width * 0.07 + "px " + style.font;
+        ctx.textAlign = "center";
         let text = victorious === null ? "Draw!"
                  : victorious ? "Player A won!"
                  : "Player B won!";
-        details_ctx.fillStyle = "#ECD164";
-        details_ctx.fillText(text, details_canvas.width / 2, details_canvas.height / 3);
+        ctx.fillStyle = "#ECD164";
+        ctx.fillText(text, canvas.width / 2, top);
+        
+        ctx.resetTransform();
     }
 
     function draw_threatened(player, threatened) {

@@ -1,14 +1,15 @@
-<canvas id="gc"></canvas>
+<canvas id="board"></canvas>
+<canvas id="details"></canvas>
 <script>
     style = {
         size_of_cell: 20,
         background_color: "black",
-        player_a_color: "blue",
+        player_a_color: "green",
         player_b_color: "red",
         threatened: "purple"
     };
     parameters = {
-        board_size: 10
+        board_size: 8
     };
                  
     function gather_from(board, from, player, direction) {
@@ -28,18 +29,18 @@
     }
 
     function gather_all(board, from, player) {
-            function gather(direction) { return gather_from(board, from, player, direction); }
-            return [].concat(
-                gather({x:  0, y: -1}),
-                gather({x:  1, y: -1}),
-                gather({x:  1, y:  0}),
-                gather({x:  1, y:  1}),
-                gather({x:  0, y:  1}),
-                gather({x: -1, y:  1}),
-                gather({x: -1, y:  0}),
-                gather({x: -1, y: -1})
-            );
-        }
+        function gather(direction) { return gather_from(board, from, player, direction); }
+        return [].concat(
+            gather({x:  0, y: -1}),
+            gather({x:  1, y: -1}),
+            gather({x:  1, y:  0}),
+            gather({x:  1, y:  1}),
+            gather({x:  0, y:  1}),
+            gather({x: -1, y:  1}),
+            gather({x: -1, y:  0}),
+            gather({x: -1, y: -1})
+        );
+    }
     function game() {
         // start the game
         const board = create_array(parameters.board_size);
@@ -59,9 +60,33 @@
 
         let current_player = true;
         draw_board(board);
-               
+
+        function fill_animate(points, player) {
+            const step = 3;
+            let start = style.size_of_cell / 2;
+            let size = 1;
+            let color = player_color(player);
+            function run() {
+                start -= step;
+                size += 2 * step;
+                for (p of points) {
+                    board_ctx.fillStyle = color;
+                    board_ctx.fillRect(p.x * style.size_of_cell + start,
+                                       p.y * style.size_of_cell + start,
+                                       size,
+                                       size);
+                }
+                if (size < style.size_of_cell - step) {
+                    window.setTimeout(run, 10);
+                } else {
+                    draw_board(board, player);
+                }
+            }
+            return run;
+        }
         return {
             mouseClick: function(evt) {
+                draw_board(board, current_player);
                 const from = get_cell_from_mouse(evt.pageX, evt.pageY);
                 if (!from) return;
 
@@ -72,55 +97,65 @@
                     board[p.x][p.y] = current_player;
                 }
                 board[from.x][from.y] = current_player;
-                draw_board(board);
+                window.setTimeout(fill_animate([from], current_player), 10);
+                window.setTimeout(fill_animate(conquered, current_player), 10);
+
                 current_player = !current_player;
             },
             mouseover: function(evt) {
-                draw_board(board);
-                canvas.style.cursor = 'not-allowed';
+                board_canvas.style.cursor = 'not-allowed';
                 const from = get_cell_from_mouse(evt.clientX, evt.clientY);
                 if (!from) {
                     return;
                 }
-                draw_hollowed_square_ctx(from, current_player);
+                draw_board(board, current_player);
+                draw_hollowed_square(from, current_player);
                 let threatened = gather_all(board, from, current_player);
                 if (threatened.length === 0)
                     return;
-                canvas.style.cursor = 'cell';
+                board_canvas.style.cursor = 'cell';
                 draw_threatened(current_player, threatened);
             }
         }
     }
 
     window.onload = function() {
-        canvas = document.getElementById("gc");
-        canvas.width = document.body.clientWidth - 25;
-        canvas.height = document.body.clientHeight - 25;
-        // canvas.style.cursor = 'none';
-        style.size_of_cell = Math.floor(Math.min(canvas.width, canvas.height) / parameters.board_size - 1);
+        board_canvas = document.getElementById("board");
+        details_canvas = document.getElementById("details");
+
+        board_canvas.width = document.body.clientWidth - 25;
+        board_canvas.height = Math.floor((document.body.clientHeight - 25) * 0.85);
+
+        style.size_of_cell = Math.floor(Math.min(board_canvas.width, board_canvas.height) / parameters.board_size - 1);
+
+        details_canvas.width = style.size_of_cell * parameters.board_size;
+        details_canvas.height = Math.floor((document.body.clientHeight - 25) * 0.15);
+
+        board_ctx = board_canvas.getContext("2d");
+        details_ctx = details_canvas.getContext("2d");
+        // board_canvas.style.cursor = 'none';
         g = game();
-        canvas.addEventListener("click", g.mouseClick);
-        canvas.addEventListener("mousemove", g.mouseover);
+        board_canvas.addEventListener("click", g.mouseClick);
+        board_canvas.addEventListener("mousemove", g.mouseover);
     }
 
-    function draw_square_ctx(ctx, point, color) {
-        ctx.fillStyle = color;
-        ctx.fillRect(point.x * style.size_of_cell + 1,
-                        point.y * style.size_of_cell + 1,
-                        style.size_of_cell - 1,
-                        style.size_of_cell - 1);
+    function draw_square(point, color) {
+        board_ctx.fillStyle = color;
+        board_ctx.fillRect(point.x * style.size_of_cell + 1,
+                           point.y * style.size_of_cell + 1,
+                           style.size_of_cell - 1,
+                           style.size_of_cell - 1);
     }
 
-    function draw_hollowed_square_ctx(point, player) {
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = player_color(player);
-        ctx.fillRect(point.x * style.size_of_cell + 1,
+    function draw_hollowed_square(point, player) {
+        board_ctx.fillStyle = player_color(player);
+        board_ctx.fillRect(point.x * style.size_of_cell + 1,
                      point.y * style.size_of_cell + 1,
                      style.size_of_cell - 1,
                      style.size_of_cell - 1);
                         
-        ctx.fillStyle = style.background_color;
-        ctx.fillRect(point.x * style.size_of_cell + 6,
+        board_ctx.fillStyle = style.background_color;
+        board_ctx.fillRect(point.x * style.size_of_cell + 6,
                      point.y * style.size_of_cell + 6,
                      style.size_of_cell - 12,
                      style.size_of_cell - 12);
@@ -132,11 +167,40 @@
         return style.background_color;
     }
 
-    function draw_board(board) {
-        const ctx = canvas.getContext("2d");
-        function draw_square(point, color) { return draw_square_ctx(ctx, point, color); }
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, style.size_of_cell * parameters.board_size + 1, style.size_of_cell * parameters.board_size + 1);
+    function draw_board(board, player) {
+        board_ctx.fillStyle = "white";
+        board_ctx.fillRect(0, 0,
+                     style.size_of_cell * parameters.board_size + 1,
+                     style.size_of_cell * parameters.board_size + 1);
+        let blues = 0;
+        let reds = 0;
+        for (let i=0; i < parameters.board_size; i++) {
+            for (let j=0; j < parameters.board_size; j++) {
+                const v = board[i][j];
+                draw_square({x: i, y: j}, player_color(v));
+                if (v === true) blues++;
+                if (v === false) reds++;
+            }
+        }
+
+        details_ctx.fillStyle = "black";
+        details_ctx.fillRect(0, 0, details_canvas.width, details_canvas.height);
+        details_ctx.font = "" + style.size_of_cell + "px Comic Sans MS";
+        details_ctx.fillStyle = "green";
+        details_ctx.textAlign = "center";
+        details_ctx.fillText(blues, details_canvas.width/3, style.size_of_cell - 10);
+        details_ctx.fillStyle = "red";
+        details_ctx.fillText(reds, 2 * details_canvas.width/3, style.size_of_cell - 10);
+        
+        details_ctx.fillStyle = "white";
+        details_ctx.fillText("^", (player === false ? 2 : 1) * details_canvas.width/3, 2 * style.size_of_cell - 10);
+    }
+
+    function draw_details(board) {
+        board_ctx.fillStyle = "white";
+        board_ctx.fillRect(0, 0,
+                     style.size_of_cell * parameters.board_size + 1,
+                     style.size_of_cell * parameters.board_size + 1);
         
         for (let i=0; i < parameters.board_size; i++) {
             for (let j=0; j < parameters.board_size; j++) {
@@ -147,8 +211,6 @@
     }
 
     function draw_threatened(player, threatened) {
-        const ctx = canvas.getContext("2d");
-        function draw_square(point, color) { return draw_square_ctx(ctx, point, color); }
         for (p of threatened)
             draw_square(p, style.threatened);
     }

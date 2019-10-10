@@ -1,0 +1,108 @@
+<canvas id="gc"></canvas>
+<script>
+    style = {
+        size_of_cell: 20,
+        background_color: "black",
+        player_a_color: "blue",
+        player_b_color: "red"
+    };
+    parameters = {
+        board_size: 10
+    };
+    function game() {
+        // start the game
+        const board = create_array(parameters.board_size);
+        board[4][4] = true;
+        board[5][5] = true;
+        board[4][5] = false;
+        board[5][4] = false;
+        let current_player = true;
+        draw_board(board);
+
+        return {
+            mouseClick: function mouseClick(evt) {
+                const from = {x: Math.floor(evt.pageX / style.size_of_cell),
+                              y: Math.floor(evt.pageY / style.size_of_cell)};
+                if (from.x >= parameters.board_size || from.y >= parameters.board_size)
+                    return;
+                if (from.x < 0 || from.y < 0)
+                    return;
+                if (board[from.x][from.y] !== undefined) return;
+                            
+                function gather(direction) {
+                    let tmp = [];
+                    let current = {x: from.x, y: from.y};
+                    while (true) {
+                        current.x += direction.x;
+                        current.y += direction.y;
+                        if (board[current.x][current.y] !== !current_player)
+                            break;
+                        tmp.push({x: current.x, y: current.y});
+                    }
+                    if (board[current.x][current.y] !== current_player) {
+                        return [];
+                    }
+                    return tmp;
+                }
+                let conquered = [].concat(
+                    gather({x:  0, y: -1}),
+                    gather({x:  1, y: -1}),
+                    gather({x:  1, y:  0}),
+                    gather({x:  1, y:  1}),
+                    gather({x:  0, y:  1}),
+                    gather({x: -1, y:  1}),
+                    gather({x: -1, y:  0}),
+                    gather({x: -1, y: -1})
+                );
+                if (conquered.length === 0)
+                    return;
+                for (p of conquered) {
+                    board[p.x][p.y] = current_player;
+                }
+                board[from.x][from.y] = current_player;
+                draw_board(board);
+                current_player = !current_player;
+            }
+        }
+    }
+    window.onload = function() {
+        canvas = document.getElementById("gc");
+        canvas.width = document.body.clientWidth - 25;
+        canvas.height = document.body.clientHeight - 25;
+        style.size_of_cell = Math.floor(Math.min(canvas.width, canvas.height) / parameters.board_size - 1);
+        g = game();
+        document.addEventListener("click", g.mouseClick);
+    }
+    function draw_board(board) {
+        const ctx = canvas.getContext("2d");
+        function draw_square(point, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(point.x * style.size_of_cell + 1,
+                         point.y * style.size_of_cell + 1,
+                         style.size_of_cell - 1,
+                         style.size_of_cell - 1);
+        }
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, style.size_of_cell * parameters.board_size + 1, style.size_of_cell * parameters.board_size + 1);
+        
+        for (let i=0; i < parameters.board_size; i++) {
+            for (let j=0; j < parameters.board_size; j++) {
+                const v = board[i][j];
+                if (v === true) draw_square({x: i, y: j}, style.player_a_color)
+                else if (v === false) draw_square({x: i, y: j}, style.player_b_color)
+                else draw_square({x: i, y: j}, style.background_color);
+            }
+        }
+    }
+    function equal(point1, point2) { return point1.x == point2.x && point1.y == point2.y; }
+
+    function create_array(n) {
+        let arr = new Array(n);
+        for (let i=-1; i < n + 1; i++) {
+            arr[i] = new Array(n);
+            arr[i][-1] = undefined;
+            arr[i][n] = undefined;
+        }
+        return arr;
+    }
+</script>

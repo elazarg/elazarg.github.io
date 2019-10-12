@@ -73,8 +73,8 @@
         draw_score(board, current_player);
         
         function mouseClick(evt) {
+            draw_board(board);
             draw_score(board, current_player);
-            draw_board(board, current_player);
             const from = get_cell_from_mouse(evt);
             if (!from) return;
 
@@ -109,7 +109,7 @@
             if (!from) {
                 return;
             }
-            draw_board(board, current_player);
+            draw_board(board);
             draw_hollowed_square(from, current_player);
             let threatened = gather_all(board, from, current_player);
             if (threatened.length === 0)
@@ -175,7 +175,7 @@
             if (size < style.size_of_cell / 2 - 2) {
                 window.setTimeout(run, 6);
             } else {
-                draw_board(board, player);
+                draw_board(board);
             }
         }
         return run;
@@ -201,7 +201,7 @@
         return style.board_background_color;
     }
 
-    function draw_board(board, player) {
+    function draw_board(board) {
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0,
                      style.size_of_cell * parameters.board_size + 1,
@@ -244,7 +244,7 @@
         return res;
     }
 
-    function draw_score(board, player) {
+    function draw_score(board, player_emphasis) {
         let [blues, reds] = find_pieces(board);
 
         ctx.translate(0, description_height);
@@ -255,23 +255,21 @@
         ctx.font = "" + score_font_size + "px " + style.font;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
-        function xloc(player) {
-            const pad = 20;
-            const width = ctx.measureText(blues.length).width / 2 + top;
-            if (player == null) return canvas.width / 2;
-            if (player) return width;
-            return canvas.width - width - top;
+
+        for (player of [true, false]) {
+            const length = player === true ? blues.length : reds.length;
+            const top = score_font_size * 0.2;
+            const width = ctx.measureText(length).width / 2 + top;
+            const xloc = (player === true) ? width : canvas.width - width;
+
+            ctx.fillStyle = player_color(player)
+            ctx.fillText(length, xloc, top);
+            
+            if (player === player_emphasis) {
+                ctx.fillStyle = "lightgray";
+                ctx.fillText("^", xloc, score_font_size * 1.2);
+            }
         }
-        const top = score_font_size * 0.2;
-
-        ctx.fillStyle = player_color(true);
-        ctx.fillText(blues.length, xloc(true), top);
-
-        ctx.fillStyle = player_color(false);
-        ctx.fillText(reds.length, xloc(false), top);
-        
-        ctx.fillStyle = "lightgray";
-        ctx.fillText("^", xloc(player), score_font_size * 1.2);
 
         ctx.resetTransform();
     }

@@ -28,7 +28,6 @@ canvas {
         parameters = {
             board_size: 8
         };
-        
         function* board_cells() {
             for (let x=0; x < parameters.board_size; x++)
                 for (let y=0; y < parameters.board_size; y++)
@@ -150,6 +149,7 @@ canvas {
             font: "Comic Sans MS",
             threatened: "#5b6a99"
         };
+        style.audio = new Audio('water.mp3');
         animating = undefined;
         document.body.style.backgroundColor = "#fdfdfd";
 
@@ -263,6 +263,7 @@ canvas {
             const step = 1;
             let size = 1;
             const color = player_color(player);
+            style.audio.cloneNode().play();
             function run() {
                 size += step;
                 for (cell of cells) {

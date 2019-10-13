@@ -77,19 +77,26 @@ canvas {
             return res;
         }
 
-        function find_moves(board, player) {
-            const res = [];
-            for (let cell of board_cells()) {
-                const v = board[cell.x][cell.y];
-                if (v === null) {
-                    if (gather_all(board, cell, player).length > 0)
-                        res.push(cell);
-                }
+        function count_pieces(board, player) {
+            let res = 0;
+            for (const cell of board_cells()) {
+                if (board[cell.x][cell.y] === player)
+                    res++;
             }
             return res;
         }
 
-        function create_array(n) {
+        function* find_moves(board, player) {
+            for (let cell of board_cells()) {
+                const v = board[cell.x][cell.y];
+                if (v === null) {
+                    if (gather_all(board, cell, player).length > 0)
+                        yield cell;
+                }
+            }
+        }
+
+        function create_board(n) {
             let arr = new Array(n);
             for (let i=-1; i < n + 1; i++) {
                 arr[i] = new Array(n);
@@ -99,10 +106,21 @@ canvas {
             return arr;
         }
 
+        function clone_board(board) {
+            const n = board.length - 1;
+            let arr = new Array(n);
+            for (let i=-1; i < n + 1; i++) {
+                arr[i] = new Array(n);
+                for (let j=-1; j < n+1; j++)
+                    arr[i][j] = board[i][j];
+            }
+            return arr;
+        }
+
         class Reversi {
             constructor() {
                 {
-                    const board = this.board = create_array(parameters.board_size);
+                    const board = this.board = create_board(parameters.board_size);
                     const mid1 = Math.floor(board.length / 2);
                     const mid0 = mid1 - 1;
                     board[mid0][mid0] = board[mid1][mid1] = true;
@@ -110,11 +128,31 @@ canvas {
                 }
                 this.player = true;
                 this.game_over = false;
-                this.available_moves = find_moves(this.board, this.player);
+            }
+
+            clone() {
+                let res = new Reversi();
+                res.board = clone_board(this.board);
+                res.player = this.player;
+                res.game_over = this.game_over;
+                return res;
             }
 
             is_empty(cell) {
                 return this.board[cell.x][cell.y] === null;
+            }
+
+            can_move() {
+                for (let child of this.children()) {
+                    return true;
+                }
+                return false;
+            }
+
+            who_won() {
+                let [blues, reds] = [count_pieces(this.board, true), count_pieces(this.board, false)];
+                const victorious = blues === reds ? null : blues > reds;
+                return victorious;
             }
 
             put_disc(new_disc) {
@@ -131,30 +169,76 @@ canvas {
                 for (let cell of captured) {
                     this.board[cell.x][cell.y] = this.player;
                 }
-                this.available_moves = find_moves(this.board, !this.player);
+                this.player = !this.player;
 
-                if (this.available_moves.length == 0) {
-                    let [blues, reds] = [find_pieces(this.board, true), find_pieces(this.board, false)];
-                    const victorious = blues.length === reds.length ? null : blues.length > reds.length;
+                if (!this.can_move()) {
+                    const victorious = this.who_won();
                     this.game_over = true;
                     return {captured, victorious};
                 }
-                this.player = !this.player;
                 return {captured};
             }
 
-            ai_max() {
-                let max = 0;
-                let move = null;
-                for (let new_move of this.available_moves) {
-                    let captured = gather_all(this.board, new_move, this.player);
-                    if (captured.length > max) {
-                        move = new_move;
-                        max = captured.length;
+            * children() {
+                for (let new_move of find_moves(this.board, this.player)) {
+                    const node = this.clone();
+                    node.put_disc(new_move);
+                    yield node;
+                }
+            }
+
+            static score_max(player) {
+                return function score(node) {
+                    return count_pieces(node.board, player) - count_pieces(node.board, !player);
+                }
+            }
+
+            alphabeta(depth, score)  {
+                const me = this.player;
+                function recurse(node, depth, α, β, maximizingPlayer) {
+                    if (node.game_over) {
+                        if (node.who_won() === me) return Infinity;
+                        if (node.who_won() === !me) return -Infinity;
+                        return 0;
+                    }
+                    if (depth === 0)
+                        return score(node);
+
+                    if (maximizingPlayer) {
+                        let value = -Infinity;
+                        for (let child of node.children()) {
+                            value = Math.max(value, recurse(child, depth - 1, α, β, false));
+                            α = Math.max(α, value);
+                            if (α >= β)
+                                break; /* β cut-off */
+                        }
+                        return value;
+                    } else {
+                        let value = Infinity;
+                        for (let child of node.children()) {
+                            value = Math.min(value, recurse(child, depth - 1, α, β, true));
+                            β = Math.min(β, value);
+                            if (α >= β)
+                                break; /* α cut-off */
+                        }
+                        return value;
                     }
                 }
-                return move;
+
+                let best_value = -Infinity;
+                let best_move = undefined;
+                for (let move of find_moves(this.board, this.player)) {
+                    const child = this.clone();
+                    child.put_disc(move);
+                    let value = recurse(child, depth, -Infinity, Infinity, true);
+                    if (value > best_value) {
+                        best_value = value;
+                        best_move = move;
+                    }
+                }
+                return best_move;
             }
+
         }
 
         style = {
@@ -211,19 +295,21 @@ canvas {
                 window.setTimeout(fill_animate(game.board, captured, last_player, async function () {
                     if (victorious !== undefined)
                         game_over(game.board, victorious);
-                    else if (!is_human(game.player)) {
-                        await sleep(200); // nice user experience
-                        do_move(game.ai_max());
-                    }
                 }), 0);
             }
             
-            function mouseClick(evt) {
+            async function mouseClick(evt) {
                 if (!is_human(game.player)) return;
 
                 let new_disc = get_cell_from_location(get_mouse_location(evt));
                 if (new_disc === undefined) return;
                 do_move(new_disc);
+                if (!is_human(game.player)) {
+                    canvas.style.cursor = 'progress';
+                    await sleep(400); // nice user experience
+                    do_move(game.alphabeta(4, Reversi.score_max(game.player)));
+                    canvas.style.cursor = 'pointer';
+                }
             }
 
             function mouseOver(evt) {
@@ -358,7 +444,7 @@ canvas {
             ctx.textBaseline = "top";
 
             for (let player of [true, false]) {
-                const length = find_pieces(board, player).length;
+                const length = count_pieces(board, player);
                 const top = score_font_size * 0.2;
                 const width = ctx.measureText(length).width / 2 + top;
                 const xloc = (player === true) ? width : canvas.width - width;

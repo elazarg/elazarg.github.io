@@ -86,6 +86,15 @@ canvas {
             return res;
         }
 
+        function count_pieces_weighted(board, player, value) {
+            let res = 0;
+            for (const cell of board_cells()) {
+                if (board[cell.x][cell.y] === player)
+                    res += value(cell.x, cell.y);
+            }
+            return res;
+        }
+
         function* find_moves(board, player) {
             for (let cell of board_cells()) {
                 const v = board[cell.x][cell.y];
@@ -143,10 +152,7 @@ canvas {
             }
 
             can_move() {
-                for (let child of this.children()) {
-                    return true;
-                }
-                return false;
+                return this.children.length > 0;
             }
 
             who_won() {
@@ -179,17 +185,38 @@ canvas {
                 return {captured};
             }
 
-            * children() {
-                for (let new_move of find_moves(this.board, this.player)) {
-                    const node = this.clone();
-                    node.put_disc(new_move);
-                    yield node;
+            get children() {
+                if (this._children === undefined) {
+                    this._children = [];
+                    for (let new_move of find_moves(this.board, this.player)) {
+                        const node = this.clone();
+                        node.put_disc(new_move);
+                        this._children.push([new_move, node]);
+                    }
                 }
+                return this._children;
             }
 
             static score_max(player) {
                 return function score(node) {
                     return count_pieces(node.board, player) - count_pieces(node.board, !player);
+                }
+            }
+
+            static score_max_weighted(player) {
+                function value(x, y) {
+                    let x_edge = x === 0 || x === parameters.board_size-1;
+                    let y_edge = y === 0 || y === parameters.board_size-1;
+                    let x_near_edge = x === 1 || x === parameters.board_size-2;
+                    let y_near_edge = y === 1 || y === parameters.board_size-2;
+                    if (x_near_edge && y_near_edge) return -5;
+                    if (x_near_edge || y_near_edge) return -3;
+                    if (x_edge && y_edge) return 5;
+                    if (x_edge || y_edge) return 3;
+                    return 1;
+                }
+                return function score(node) {
+                    return count_pieces_weighted(node.board, player, value) - count_pieces_weighted(node.board, !player, value);
                 }
             }
 
@@ -206,7 +233,7 @@ canvas {
 
                     if (maximizingPlayer) {
                         let value = -Infinity;
-                        for (let child of node.children()) {
+                        for (let [move, child] of node.children) {
                             value = Math.max(value, recurse(child, depth - 1, α, β, false));
                             α = Math.max(α, value);
                             if (α >= β)
@@ -215,7 +242,7 @@ canvas {
                         return value;
                     } else {
                         let value = Infinity;
-                        for (let child of node.children()) {
+                        for (let [move, child] of node.children) {
                             value = Math.min(value, recurse(child, depth - 1, α, β, true));
                             β = Math.min(β, value);
                             if (α >= β)
@@ -227,9 +254,7 @@ canvas {
 
                 let best_value = -Infinity;
                 let best_move = undefined;
-                for (let move of find_moves(this.board, this.player)) {
-                    const child = this.clone();
-                    child.put_disc(move);
+                for (let [move, child] of this.children) {
                     let value = recurse(child, depth, -Infinity, Infinity, true);
                     if (value > best_value) {
                         best_value = value;
@@ -282,7 +307,11 @@ canvas {
             
             function do_move(new_disc) {
                 let last_player = game.player;
+                for (let [move, child] of game.children)
+                    if (move.x === new_disc.x && move.y === new_disc.y)
+                        new_game = child;
                 const res = game.put_disc(new_disc);
+                game = new_game;
                 if (res === undefined) return;
                 const {captured, victorious} = res;
                 if (victorious !== undefined) {
@@ -305,10 +334,10 @@ canvas {
                 if (new_disc === undefined) return;
                 do_move(new_disc);
                 if (!is_human(game.player)) {
-                    canvas.style.cursor = 'progress';
-                    await sleep(400); // nice user experience
-                    do_move(game.alphabeta(4, Reversi.score_max(game.player)));
-                    canvas.style.cursor = 'pointer';
+                    // canvas.style.cursor = 'progress';
+                    // await sleep(400); // nice user experience
+                    do_move(game.alphabeta(3, Reversi.score_max_weighted(game.player)));
+                    // canvas.style.cursor = 'pointer';
                 }
             }
 

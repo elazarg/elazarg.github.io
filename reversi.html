@@ -25,6 +25,10 @@ canvas {
 <body>
     <canvas id="board"></canvas>
     <script>
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
         parameters = {
             board_size: 8
         };
@@ -66,7 +70,7 @@ canvas {
 
         function find_pieces(board, player) {
             const res = [];
-            for (cell of board_cells()) {
+            for (let cell of board_cells()) {
                 if (board[cell.x][cell.y] === player)
                     res.push(cell);
             }
@@ -75,7 +79,7 @@ canvas {
 
         function find_moves(board, player) {
             const res = [];
-            for (cell of board_cells()) {
+            for (let cell of board_cells()) {
                 const v = board[cell.x][cell.y];
                 if (v === null) {
                     if (gather_all(board, cell, player).length > 0)
@@ -124,7 +128,7 @@ canvas {
                 if (captured.length === 0)
                     return;
                 this.board[new_disc.x][new_disc.y] = this.player;
-                for (cell of captured) {
+                for (let cell of captured) {
                     this.board[cell.x][cell.y] = this.player;
                 }
                 this.available_moves = find_moves(this.board, !this.player);
@@ -137,6 +141,19 @@ canvas {
                 }
                 this.player = !this.player;
                 return {captured};
+            }
+
+            ai_max() {
+                let max = 0;
+                let move = null;
+                for (let new_move of this.available_moves) {
+                    let captured = gather_all(this.board, new_move, this.player);
+                    if (captured.length > max) {
+                        move = new_move;
+                        max = captured.length;
+                    }
+                }
+                return move;
             }
         }
 
@@ -176,25 +193,42 @@ canvas {
             const game = new Reversi();
             draw_board(game.board);
             draw_score(game.board, game.player);
+
+            function is_human(player) { return player === true; }
             
-            function mouseClick(evt) {
+            function do_move(new_disc) {
                 let last_player = game.player;
-                let new_disc = get_cell_from_location(get_mouse_location(evt));
-                if (new_disc === undefined) return;
                 const res = game.put_disc(new_disc);
                 if (res === undefined) return;
                 const {captured, victorious} = res;
-                if (victorious === true || victorious === false || victorious === null) {
+                if (victorious !== undefined) {
                     canvas.removeEventListener('click', mouseClick);
                     canvas.removeEventListener('mousemove', mouseOver);
                 }
 
                 draw_piece(new_disc, player_color(last_player));
                 draw_score(game.board, game.player);
-                window.setTimeout(fill_animate(game.board, captured, last_player, victorious), 0);
+                window.setTimeout(fill_animate(game.board, captured, last_player, async function () {
+                    if (victorious !== undefined)
+                        game_over(game.board, victorious);
+                    else if (!is_human(game.player)) {
+                        await sleep(200); // nice user experience
+                        do_move(game.ai_max());
+                    }
+                }), 0);
             }
             
+            function mouseClick(evt) {
+                if (!is_human(game.player)) return;
+
+                let new_disc = get_cell_from_location(get_mouse_location(evt));
+                if (new_disc === undefined) return;
+                do_move(new_disc);
+            }
+
             function mouseOver(evt) {
+                if (!is_human(game.player)) return;
+
                 canvas.style.cursor = 'not-allowed';
                 const cell = get_cell_from_location(get_mouse_location(evt));
                 if (!cell || !game.is_empty(cell)) {
@@ -256,7 +290,7 @@ canvas {
                             style.size_of_cell - 1);
         }
 
-        function fill_animate(board, cells, player, victorious) {
+        function fill_animate(board, cells, player, continuation) {
             animating = true;
             const step = 1;
             let size = 1;
@@ -264,15 +298,14 @@ canvas {
             style.audio.cloneNode().play();
             function run() {
                 size += step;
-                for (cell of cells) {
+                for (let cell of cells) {
                     draw_circle(cell, color, size);
                 }
                 if (size < style.size_of_cell / 2 - 3*step) {
                     window.setTimeout(run, 6);
                 } else {
                     animating = false;
-                    if (victorious !== undefined)
-                        game_over(board, victorious);
+                    continuation();
                 }
             }
             return run;
@@ -324,7 +357,7 @@ canvas {
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
 
-            for (player of [true, false]) {
+            for (let player of [true, false]) {
                 const length = find_pieces(board, player).length;
                 const top = score_font_size * 0.2;
                 const width = ctx.measureText(length).width / 2 + top;
@@ -353,7 +386,7 @@ canvas {
                     
             ctx.stroke();
             
-            for (t of [0.35, 1-0.35]) {
+            for (let t of [0.35, 1-0.35]) {
                 ctx.beginPath();
                 ctx.arc((cell.x + t) * style.size_of_cell + 1,
                         (cell.y + 0.35) * style.size_of_cell, radius / 10, 0, 2 * Math.PI, false);
@@ -362,12 +395,12 @@ canvas {
         }
 
         function game_over(board, victorious) {
-            for (cell of find_pieces(board, victorious))
+            for (let cell of find_pieces(board, victorious))
                 draw_smiley(cell);
         }
 
         function draw_threatened(player, threatened) {
-            for (cell of threatened)
+            for (let cell of threatened)
                 draw_piece(cell, style.threatened);
         }
     </script>

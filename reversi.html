@@ -1,8 +1,29 @@
-<meta 
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"
      name='viewport' 
      content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
 />
-<canvas style="display: block; margin: auto; padding: 0;" id="board"></canvas>
+<style type="text/css">
+canvas {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    outline: none;
+    display: block;
+    margin: auto;
+    padding: 0;
+    height: 100%;
+}   
+</style>
+<title>Reversi</title>
+</head>
+<body>
+<canvas id="board"></canvas>
 <script>
     style = {
         size_of_cell: 20,
@@ -81,25 +102,27 @@
             let conquered = gather_all(board, from, current_player);
             if (conquered.length === 0)
                 return;
+            conquered.unshift(from);
             for (p of conquered) {
                 board[p.x][p.y] = current_player;
             }
-            board[from.x][from.y] = current_player;
-            window.setTimeout(fill_animate(board, [from], current_player), 0);
+            available_moves = find_moves(board, !current_player);
+            
+
+            if (available_moves.length == 0) {
+                canvas.removeEventListener('click', mouseClick, false);
+                canvas.removeEventListener('mouseover', mouseOver, false);
+
+                let [blues, reds] = [find_pieces(board, true), find_pieces(board, false)];
+                const victorious = blues.length === reds.length ? null : blues.length > reds.length;
+                draw_score(board, victorious);
+                window.setTimeout(fill_animate(board, conquered, current_player, victorious), 0);
+                return;
+            }
+
             window.setTimeout(fill_animate(board, conquered, current_player), 0);
 
             current_player = !current_player;
-            
-            available_moves = find_moves(board, current_player);
-            if (available_moves.length == 0) {
-                let [blues, reds] = find_pieces(board);
-                const victorious = blues.length === reds.length ? null : blues.length > reds.length;
-                draw_score(board, victorious);
-                game_over(board, victorious);
-                canvas.removeEventListener('click', mouseClick, false)
-                canvas.removeEventListener('mouseover', mouseOver, false)
-                return;
-            }
             draw_score(board, current_player);
         }
         
@@ -109,13 +132,15 @@
             if (!from) {
                 return;
             }
-            draw_board(board);
+            if (!animating)
+                draw_board(board);
             draw_hollowed_square(from, current_player);
             let threatened = gather_all(board, from, current_player);
             if (threatened.length === 0)
                 return;
             canvas.style.cursor = 'cell';
-            draw_threatened(current_player, threatened);
+            if (!animating)
+                draw_threatened(current_player, threatened);
         }
         
         return { mouseClick, mouseOver };
@@ -124,9 +149,9 @@
     window.onload = function() {
         canvas = document.getElementById("board");
 
-        canvas.height = document.body.clientHeight - 25;
+        canvas.height = window.innerHeight - 25;
         const base_width = Math.min(
-            document.body.clientWidth,
+            window.innerWidth,
             canvas.height * 0.85
         );
         description_height = canvas.height * 0.85;
@@ -136,7 +161,7 @@
         ctx = canvas.getContext("2d");
         g = game();
         canvas.addEventListener("click", g.mouseClick);
-        canvas.addEventListener("mousemove", g.mouseover);
+        canvas.addEventListener("mousemove", g.mouseOver);
     }
 
     function draw_piece(point, color) {
@@ -147,7 +172,7 @@
     function draw_circle(point, color, radius) {
         ctx.beginPath();
         ctx.arc((point.x + 0.5) * style.size_of_cell + 1,
-                      (point.y + 0.5) * style.size_of_cell, radius, 0, 2 * Math.PI, false);
+                (point.y + 0.5) * style.size_of_cell, radius, 0, 2 * Math.PI, false);
         ctx.fillStyle = color;
         ctx.fill();
         ctx.lineWidth = 2;
@@ -163,7 +188,8 @@
                            style.size_of_cell - 1);
     }
 
-    function fill_animate(board, points, player) {
+    function fill_animate(board, points, player, victorious) {
+        animating = true;
         const step = 1;
         let size = 1;
         const color = player_color(player);
@@ -172,10 +198,12 @@
             for (p of points) {
                 draw_circle(p, color, size);
             }
-            if (size < style.size_of_cell / 2 - 2) {
+            if (size < style.size_of_cell / 2 - 3*step) {
                 window.setTimeout(run, 6);
             } else {
-                draw_board(board);
+                animating = false;
+                if (victorious !== undefined)
+                    game_over(board, victorious);
             }
         }
         return run;
@@ -217,17 +245,15 @@
         }
     }
     
-    function find_pieces(board) {
-        let blues = [];
-        let reds = [];
-        for (let i=0; i < parameters.board_size; i++) {
-            for (let j=0; j < parameters.board_size; j++) {
-                const v = board[i][j];
-                if (v === true) blues.push(v);
-                if (v === false) reds.push(v);
+    function find_pieces(board, player) {
+        let res = [];
+        for (let x=0; x < parameters.board_size; x++) {
+            for (let y=0; y < parameters.board_size; y++) {
+                const v = board[x][y];
+                if (v === player) res.push({x, y});
             }
         }
-        return [blues, reds];
+        return res;
     }
 
     function find_moves(board, player) {
@@ -245,8 +271,6 @@
     }
 
     function draw_score(board, player_emphasis) {
-        let [blues, reds] = find_pieces(board);
-
         ctx.translate(0, description_height);
 
         ctx.fillStyle = style.description_background_color;
@@ -257,7 +281,7 @@
         ctx.textBaseline = "top";
 
         for (player of [true, false]) {
-            const length = player === true ? blues.length : reds.length;
+            const length = find_pieces(board, player).length;
             const top = score_font_size * 0.2;
             const width = ctx.measureText(length).width / 2 + top;
             const xloc = (player === true) ? width : canvas.width - width;
@@ -274,22 +298,28 @@
         ctx.resetTransform();
     }
 
-    function game_over(board, victorious) {
-        
-        ctx.translate(0, description_height);
-        ctx.textBaseline = "top";
+    function draw_smiley(point) {
+        const radius = style.size_of_cell / 2 - 4;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'black';
 
-        const score_font_size = canvas.height * 0.10;
-        const top = score_font_size * 0.2;
-        ctx.font = "" + canvas.width * 0.07 + "px " + style.font;
-        ctx.textAlign = "center";
-        let text = victorious === null ? "Draw!"
-                 : victorious ? "Player A won!"
-                 : "Player B won!";
-        ctx.fillStyle = "#ECD164";
-        ctx.fillText(text, canvas.width / 2, top);
+        ctx.beginPath();
+        ctx.arc((point.x + 0.5) * style.size_of_cell + 1,
+                (point.y + 0.5) * style.size_of_cell, 2/3 * radius, 0.3, Math.PI - 0.3, false);
+                
+        ctx.stroke();
         
-        ctx.resetTransform();
+        for (t of [0.35, 1-0.35]) {
+            ctx.beginPath();
+            ctx.arc((point.x + t) * style.size_of_cell + 1,
+                    (point.y + 0.35) * style.size_of_cell, radius / 10, 0, 2 * Math.PI, false);
+            ctx.stroke();
+        }
+    }
+
+    function game_over(board, victorious) {
+        for (point of find_pieces(board, victorious))
+            draw_smiley(point);
     }
 
     function draw_threatened(player, threatened) {
@@ -314,3 +344,6 @@
         board[mid0][mid1] = board[mid1][mid0] = false;
     }
 </script>
+    </body>
+    
+    </html>

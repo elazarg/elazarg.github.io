@@ -184,16 +184,14 @@ canvas {
                 const res = game.put_disc(new_disc);
                 if (res === undefined) return;
                 const {captured, victorious} = res;
-                
+                if (victorious === true || victorious === false || victorious === null) {
+                    canvas.removeEventListener('click', mouseClick);
+                    canvas.removeEventListener('mousemove', mouseOver);
+                }
+
                 draw_piece(new_disc, player_color(last_player));
-                // draw_board(game.board);
                 draw_score(game.board, game.player);
                 window.setTimeout(fill_animate(game.board, captured, last_player, victorious), 0);
-                if (victorious !== undefined) {
-                    canvas.removeEventListener('click', mouseClick, false);
-                    canvas.removeEventListener('mouseover', mouseOver, false);
-                    return;
-                }
             }
             
             function mouseOver(evt) {

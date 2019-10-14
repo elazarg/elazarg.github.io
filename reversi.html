@@ -152,7 +152,10 @@ canvas {
             }
 
             can_move() {
-                return this.children.length > 0;
+                for (let new_move of find_moves(this.board, this.player)) {
+                    return true;
+                }
+                return false;
             }
 
             who_won() {
@@ -191,6 +194,7 @@ canvas {
                     for (let new_move of find_moves(this.board, this.player)) {
                         const node = this.clone();
                         node.put_disc(new_move);
+                        node.count = [count_pieces(node.board, false), count_pieces(node.board, true)];
                         this._children.push([new_move, node]);
                     }
                 }
@@ -199,7 +203,8 @@ canvas {
 
             static score_max(player) {
                 return function score(node) {
-                    return count_pieces(node.board, player) - count_pieces(node.board, !player);
+                    const index = player ? 1 : 0;
+                    return node.count[index] - node.count[1-index];
                 }
             }
 
@@ -209,14 +214,14 @@ canvas {
                     let y_edge = y === 0 || y === parameters.board_size-1;
                     let x_near_edge = x === 1 || x === parameters.board_size-2;
                     let y_near_edge = y === 1 || y === parameters.board_size-2;
-                    if (x_near_edge && y_near_edge) return -5;
-                    if (x_near_edge || y_near_edge) return -3;
-                    if (x_edge && y_edge) return 5;
-                    if (x_edge || y_edge) return 3;
+                    if (x_near_edge && y_near_edge) return -125;
+                    if (x_near_edge || y_near_edge) return -53;
+                    if (x_edge && y_edge) return 125;
+                    if (x_edge || y_edge) return 53;
                     return 1;
                 }
                 return function score(node) {
-                    return count_pieces_weighted(node.board, player, value) - count_pieces_weighted(node.board, !player, value);
+                    let res = count_pieces_weighted(node.board, player, value) - count_pieces_weighted(node.board, !player, value);
                 }
             }
 
@@ -256,14 +261,26 @@ canvas {
                 let best_move = undefined;
                 for (let [move, child] of this.children) {
                     let value = recurse(child, depth, -Infinity, Infinity, true);
-                    if (value > best_value) {
+                    move.value = value;
+                    if (value >= best_value) {
                         best_value = value;
                         best_move = move;
                     }
                 }
-                return best_move;
+                return [best_move, best_value];
             }
 
+            iterative_deepening_alphabeta(time, score)  {
+                let depth = 0;
+                while (true) {
+                    let [best_move, best_value] = this.alphabeta(depth, score);
+                    if (depth + this.count[0] + this.count[1] === 64 || time < Date.now()) {
+                        console.log(depth);
+                        return [best_move, best_value];
+                    }
+                    depth++;
+                }
+            }
         }
 
         style = {
@@ -299,7 +316,7 @@ canvas {
         }
 
         function game_ui() {
-            const game = new Reversi();
+            let game = new Reversi();
             draw_board(game.board);
             draw_score(game.board, game.player);
 
@@ -335,8 +352,14 @@ canvas {
                 do_move(new_disc);
                 if (!is_human(game.player)) {
                     // canvas.style.cursor = 'progress';
-                    // await sleep(400); // nice user experience
-                    do_move(game.alphabeta(3, Reversi.score_max_weighted(game.player)));
+                    await sleep(300); // nice user experience
+                    const [best_move, best_value] = game.iterative_deepening_alphabeta(Date.now() + 1000, Reversi.score_max(game.player));
+                    for (const [move, child] of game.children) {
+                        ctx.font = "10px " + style.font;
+                        ctx.fillStyle = "white";
+                        ctx.fillText(move.value, move.x * style.size_of_cell + 10, move.y * style.size_of_cell + 10);
+                    }
+                    do_move(best_move);
                     // canvas.style.cursor = 'pointer';
                 }
             }
@@ -426,18 +449,18 @@ canvas {
             return run;
         }
         
-        function draw_hollowed_square(cell, player) {
+        function draw_hollowed_square(cell, player, value) {
             ctx.fillStyle = player_color(player);
             ctx.fillRect(cell.x * style.size_of_cell + 1,
-                                cell.y * style.size_of_cell + 1,
-                                style.size_of_cell - 1,
-                                style.size_of_cell - 1);
+                         cell.y * style.size_of_cell + 1,
+                         style.size_of_cell - 1,
+                         style.size_of_cell - 1);
                             
             ctx.fillStyle = style.board_background_color;
             ctx.fillRect(cell.x * style.size_of_cell + 6,
-                        cell.y * style.size_of_cell + 6,
-                        style.size_of_cell - 12,
-                        style.size_of_cell - 12);
+                         cell.y * style.size_of_cell + 6,
+                         style.size_of_cell - 12,
+                         style.size_of_cell - 12);
         }
 
         function player_color(player) {

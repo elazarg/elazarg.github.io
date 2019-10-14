@@ -30,7 +30,8 @@ canvas {
         }
 
         parameters = {
-            board_size: 8
+            board_size: 8,
+            thinking_time: 1500
         };
         function* board_cells() {
             for (let x=0; x < parameters.board_size; x++)
@@ -44,11 +45,11 @@ canvas {
             while (true) {
                 x += direction.x;
                 y += direction.y;
-                if (board[x][y] !== !player)
+                if (board.at({x, y}) !== !player)
                     break;
                 tmp.push({x, y});
             }
-            if (board[x][y] !== player) {
+            if (board.at({x, y}) !== player) {
                 return [];
             }
             return tmp;
@@ -71,7 +72,7 @@ canvas {
         function find_pieces(board, player) {
             const res = [];
             for (let cell of board_cells()) {
-                if (board[cell.x][cell.y] === player)
+                if (board.at(cell) === player)
                     res.push(cell);
             }
             return res;
@@ -80,7 +81,7 @@ canvas {
         function count_pieces(board, player) {
             let res = 0;
             for (const cell of board_cells()) {
-                if (board[cell.x][cell.y] === player)
+                if (board.at(cell) === player)
                     res++;
             }
             return res;
@@ -89,7 +90,7 @@ canvas {
         function count_pieces_weighted(board, player, value) {
             let res = 0;
             for (const cell of board_cells()) {
-                if (board[cell.x][cell.y] === player)
+                if (board.at(cell) === player)
                     res += value(cell.x, cell.y);
             }
             return res;
@@ -97,7 +98,7 @@ canvas {
 
         function* find_moves(board, player) {
             for (let cell of board_cells()) {
-                const v = board[cell.x][cell.y];
+                const v = board.at(cell);
                 if (v === null) {
                     if (gather_all(board, cell, player).length > 0)
                         yield cell;
@@ -105,50 +106,53 @@ canvas {
             }
         }
 
-        function create_board(n) {
-            let arr = new Array(n);
-            for (let i=-1; i < n + 1; i++) {
-                arr[i] = new Array(n);
-                for (let j=-1; j < n+1; j++)
-                    arr[i][j] = null;
+        class Board {
+            constructor() {
+                const n = parameters.board_size;
+                this.arr = new Array(n*n);
+                this.arr.fill(null);
             }
-            return arr;
-        }
 
-        function clone_board(board) {
-            const n = board.length - 1;
-            let arr = new Array(n);
-            for (let i=-1; i < n + 1; i++) {
-                arr[i] = new Array(n);
-                for (let j=-1; j < n+1; j++)
-                    arr[i][j] = board[i][j];
+            initialize() {
+                const mid1 = Math.floor(parameters.board_size / 2);
+                const mid0 = mid1 - 1;
+                this.set({x: mid0, y: mid0}, true);
+                this.set({x: mid1, y: mid1}, true);
+                this.set({x: mid0, y: mid1}, false);
+                this.set({x: mid1, y: mid0}, false);
             }
-            return arr;
+
+            clone() {
+                const other = new Board();
+                other.arr = this.arr.slice(0);
+                return other;
+            }
+
+            at(cell) {
+                if (cell.x < 0 || cell.y < 0 || cell.x >= parameters.board_size || cell.y >= parameters.board_size)
+                    return null;
+                return this.arr[cell.x * parameters.board_size + cell.y];
+            }
+
+            set(cell, value) {
+                this.arr[cell.x * parameters.board_size  + cell.y] = value;
+            }
         }
 
         class Reversi {
             constructor() {
-                {
-                    const board = this.board = create_board(parameters.board_size);
-                    const mid1 = Math.floor(board.length / 2);
-                    const mid0 = mid1 - 1;
-                    board[mid0][mid0] = board[mid1][mid1] = true;
-                    board[mid0][mid1] = board[mid1][mid0] = false;
-                }
+                this.board = new Board();
+                this.board.initialize();
                 this.player = true;
                 this.game_over = false;
             }
 
             clone() {
                 let res = new Reversi();
-                res.board = clone_board(this.board);
+                res.board = this.board.clone();
                 res.player = this.player;
                 res.game_over = this.game_over;
                 return res;
-            }
-
-            is_empty(cell) {
-                return this.board[cell.x][cell.y] === null;
             }
 
             can_move() {
@@ -168,15 +172,15 @@ canvas {
                 if (!new_disc) return;
                 if (this.game_over) return;
 
-                if (this.board[new_disc.x][new_disc.y] !== null)
+                if (this.board.at(new_disc) !== null)
                     return;
 
                 let captured = gather_all(this.board, new_disc, this.player);
                 if (captured.length === 0)
                     return;
-                this.board[new_disc.x][new_disc.y] = this.player;
+                this.board.set(new_disc, this.player);
                 for (let cell of captured) {
-                    this.board[cell.x][cell.y] = this.player;
+                    this.board.set(cell, this.player);
                 }
                 this.player = !this.player;
 
@@ -205,23 +209,6 @@ canvas {
                 return function score(node) {
                     const index = player ? 1 : 0;
                     return node.count[index] - node.count[1-index];
-                }
-            }
-
-            static score_max_weighted(player) {
-                function value(x, y) {
-                    let x_edge = x === 0 || x === parameters.board_size-1;
-                    let y_edge = y === 0 || y === parameters.board_size-1;
-                    let x_near_edge = x === 1 || x === parameters.board_size-2;
-                    let y_near_edge = y === 1 || y === parameters.board_size-2;
-                    if (x_near_edge && y_near_edge) return -125;
-                    if (x_near_edge || y_near_edge) return -53;
-                    if (x_edge && y_edge) return 125;
-                    if (x_edge || y_edge) return 53;
-                    return 1;
-                }
-                return function score(node) {
-                    let res = count_pieces_weighted(node.board, player, value) - count_pieces_weighted(node.board, !player, value);
                 }
             }
 
@@ -353,7 +340,7 @@ canvas {
                 if (!is_human(game.player)) {
                     // canvas.style.cursor = 'progress';
                     await sleep(300); // nice user experience
-                    const [best_move, best_value] = game.iterative_deepening_alphabeta(Date.now() + 1000, Reversi.score_max(game.player));
+                    const [best_move, best_value] = game.iterative_deepening_alphabeta(Date.now() + parameters.thinking_time, Reversi.score_max(game.player));
                     // for (const [move, child] of game.children) {
                     //     ctx.font = "10px " + style.font;
                     //     ctx.fillStyle = "white";
@@ -369,7 +356,7 @@ canvas {
 
                 canvas.style.cursor = 'not-allowed';
                 const cell = get_cell_from_location(get_mouse_location(evt));
-                if (!cell || !game.is_empty(cell)) {
+                if (!cell || game.board.at(cell) !== null) {
                     return;
                 }
                 if (!animating)
@@ -474,13 +461,13 @@ canvas {
             ctx.fillRect(0, 0,
                         style.size_of_cell * parameters.board_size + 1,
                         style.size_of_cell * parameters.board_size + 1);
-            for (let i=0; i < parameters.board_size; i++) {
-                for (let j=0; j < parameters.board_size; j++) {
-                    const v = board[i][j];
+            for (let x=0; x < parameters.board_size; x++) {
+                for (let y=0; y < parameters.board_size; y++) {
+                    const v = board.at({x, y});
                     if (v !== null)
-                        draw_piece({x: i, y: j}, player_color(v));
+                        draw_piece({x, y}, player_color(v));
                     else
-                        draw_empty({x: i, y: j});
+                        draw_empty({x, y});
                 }
             }
         }

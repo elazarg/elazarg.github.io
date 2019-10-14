@@ -354,11 +354,11 @@ canvas {
                     // canvas.style.cursor = 'progress';
                     await sleep(300); // nice user experience
                     const [best_move, best_value] = game.iterative_deepening_alphabeta(Date.now() + 1000, Reversi.score_max(game.player));
-                    for (const [move, child] of game.children) {
-                        ctx.font = "10px " + style.font;
-                        ctx.fillStyle = "white";
-                        ctx.fillText(move.value, move.x * style.size_of_cell + 10, move.y * style.size_of_cell + 10);
-                    }
+                    // for (const [move, child] of game.children) {
+                    //     ctx.font = "10px " + style.font;
+                    //     ctx.fillStyle = "white";
+                    //     ctx.fillText(move.value, move.x * style.size_of_cell + 10, move.y * style.size_of_cell + 10);
+                    // }
                     do_move(best_move);
                     // canvas.style.cursor = 'pointer';
                 }

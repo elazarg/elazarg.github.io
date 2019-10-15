@@ -6,7 +6,11 @@
      content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' 
 />
 <style type="text/css">
-canvas {
+#main_container {
+    background-color: #2F2F2F;
+}
+
+#board {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -17,56 +21,136 @@ canvas {
     display: block;
     margin: auto;
     padding: 0;
-    height: 100%;
-}   
+}
+
+#scoreboard {
+    display: block;
+    margin: auto;
+    padding: 0;
+    text-align: center;
+}
+
+.score {
+    font: 8vmin "Comic Sans MS";
+}
+
+.thinking_input {
+    font: 3vmin "Comic Sans MS";
+    text-align: center;
+    outline: none;
+    size: 4em;
+}
+
+#player_0_score {
+    background-color: #2F2F2F;
+    color: #8a9a5b;
+    text-align: center;
+    width: 2em;
+    min-width: 2em;
+}
+
+#player_1_score {
+    background-color: #2F2F2F;
+    min-width: 2em;
+    text-align: center;
+    width: 2em;
+    color: #8a5b99;
+}
+
 </style>
 <title>Reversi</title>
 </head>
 <body>
-    <canvas id="board"></canvas>
+    <div id="main_container">
+            <div id="scoreboard">
+                <input class="score" id="player_0_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
+                <input class="thinking_input" type="number" value="200" step="50" max="5000" min="50" onchange="parameters.thinking_time[first_player]=Number(value)">
+                <input class="thinking_input" type="number" value="200" step="50" max="5000" min="50" onchange="parameters.thinking_time[second_player]=Number(value)">
+                <input class="score" id="player_1_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
+            </div>
+        <canvas id="board"></canvas>
+        <br>
+    </div>
     <script>
+        debug = false;
+        benchmark = true;
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
+        class Strategy {
+            static score_max(player) {
+                return (node) => node.count[player] - node.count[opponent(player)];
+            }
+        }
+
         parameters = {
             board_size: 8,
-            thinking_time: 1500
+            thinking_time: [
+                200,
+                100
+            ],
+            player_ai: [
+                Strategy.score_max,
+                Strategy.score_max
+            ]
         };
+
+        const first_player = 0;
+        const second_player = 1;
+        function opponent(player) { return 1 - player; }
+
         function* board_cells() {
             for (let x=0; x < parameters.board_size; x++)
                 for (let y=0; y < parameters.board_size; y++)
                     yield {x, y};
         }
 
-        function gather_from(board, from, player, direction) {
-            let tmp = [];
-            let {x, y} = from;
+        existing_board_cells = [...board_cells()];
+
+        function can_play_to(board, x, y, player, dx, dy) {
+            let distance = 0;
             while (true) {
-                x += direction.x;
-                y += direction.y;
-                if (board.at({x, y}) !== !player)
-                    break;
-                tmp.push({x, y});
+                x += dx;
+                y += dy;
+                distance++;
+                const v = board.at_xy(x, y);
+                if (v === null) return false;
+                if (v === player) return distance > 1;
             }
-            if (board.at({x, y}) !== player) {
-                return [];
+        }
+
+        function gather_from(to_add, board, x, y, player, dx, dy) {
+            // assume can_play
+            while (true) {
+                x += dx;
+                y += dy;
+                const c = {x, y};
+                if (board.at(c) !== opponent(player))
+                    return;
+                to_add.push(c);
             }
-            return tmp;
+        }
+
+        function can_play(board, x, y, player) {
+            if (board.at_xy(x, y) !== null) return false;
+            for (const dx of [-1, 0, 1])
+                for (const dy of [-1, 0, 1])
+                    if (dx !== 0 || dy !== 0)
+                        if (can_play_to(board, x, y, player, dx, dy))
+                            return true;
+            return false;
         }
 
         function gather_all(board, from, player) {
-            function gather(direction) { return gather_from(board, from, player, direction); }
-            return [].concat(
-                gather({x:  0, y: -1}),
-                gather({x:  1, y: -1}),
-                gather({x:  1, y:  0}),
-                gather({x:  1, y:  1}),
-                gather({x:  0, y:  1}),
-                gather({x: -1, y:  1}),
-                gather({x: -1, y:  0}),
-                gather({x: -1, y: -1})
-            );
+            let {x, y} = from;
+            const res = [];
+            for (const dx of [-1, 0, 1])
+                for (const dy of [-1, 0, 1])
+                    if (dx !== 0 || dy !== 0)
+                        if (can_play_to(board, x, y, player, dx, dy))
+                            gather_from(res, board, x, y, player,  dx, dy);
+            return res;
         }
 
         function find_pieces(board, player) {
@@ -76,34 +160,6 @@ canvas {
                     res.push(cell);
             }
             return res;
-        }
-
-        function count_pieces(board, player) {
-            let res = 0;
-            for (const cell of board_cells()) {
-                if (board.at(cell) === player)
-                    res++;
-            }
-            return res;
-        }
-
-        function count_pieces_weighted(board, player, value) {
-            let res = 0;
-            for (const cell of board_cells()) {
-                if (board.at(cell) === player)
-                    res += value(cell.x, cell.y);
-            }
-            return res;
-        }
-
-        function* find_moves(board, player) {
-            for (let cell of board_cells()) {
-                const v = board.at(cell);
-                if (v === null) {
-                    if (gather_all(board, cell, player).length > 0)
-                        yield cell;
-                }
-            }
         }
 
         class Board {
@@ -116,10 +172,10 @@ canvas {
             initialize() {
                 const mid1 = Math.floor(parameters.board_size / 2);
                 const mid0 = mid1 - 1;
-                this.set({x: mid0, y: mid0}, true);
-                this.set({x: mid1, y: mid1}, true);
-                this.set({x: mid0, y: mid1}, false);
-                this.set({x: mid1, y: mid0}, false);
+                this.set({x: mid0, y: mid0}, first_player);
+                this.set({x: mid1, y: mid1}, first_player);
+                this.set({x: mid0, y: mid1}, second_player);
+                this.set({x: mid1, y: mid0}, second_player);
             }
 
             clone() {
@@ -128,10 +184,14 @@ canvas {
                 return other;
             }
 
-            at(cell) {
-                if (cell.x < 0 || cell.y < 0 || cell.x >= parameters.board_size || cell.y >= parameters.board_size)
+            at_xy(x, y) {
+                if (x < 0 || y < 0 || x >= parameters.board_size || y >= parameters.board_size)
                     return null;
-                return this.arr[cell.x * parameters.board_size + cell.y];
+                return this.arr[x * parameters.board_size + y];
+            }
+
+            at(cell) {
+                return this.at_xy(cell.x, cell.y);
             }
 
             set(cell, value) {
@@ -143,8 +203,9 @@ canvas {
             constructor() {
                 this.board = new Board();
                 this.board.initialize();
-                this.player = true;
+                this.player = first_player;
                 this.game_over = false;
+                this.count = [2, 2];
             }
 
             clone() {
@@ -152,19 +213,20 @@ canvas {
                 res.board = this.board.clone();
                 res.player = this.player;
                 res.game_over = this.game_over;
+                res.count = this.count.slice(0);
                 return res;
             }
 
             can_move() {
-                for (let new_move of find_moves(this.board, this.player)) {
-                    return true;
-                }
+                for (let cell of board_cells())
+                    if (can_play(this.board, cell.x, cell.y, this.player))
+                        return true;
                 return false;
             }
 
             who_won() {
-                let [blues, reds] = [count_pieces(this.board, true), count_pieces(this.board, false)];
-                const victorious = blues === reds ? null : blues > reds;
+                const victorious = this.count[first_player] === this.count[second_player] ? null
+                                 : this.count[first_player]  >  this.count[second_player] ? first_player : second_player;
                 return victorious;
             }
 
@@ -182,7 +244,10 @@ canvas {
                 for (let cell of captured) {
                     this.board.set(cell, this.player);
                 }
-                this.player = !this.player;
+                
+                this.count[this.player] += captured.length + 1;
+                this.player = opponent(this.player);
+                this.count[this.player] -= captured.length;
 
                 if (!this.can_move()) {
                     const victorious = this.who_won();
@@ -195,21 +260,17 @@ canvas {
             get children() {
                 if (this._children === undefined) {
                     this._children = [];
-                    for (let new_move of find_moves(this.board, this.player)) {
-                        const node = this.clone();
-                        node.put_disc(new_move);
-                        node.count = [count_pieces(node.board, false), count_pieces(node.board, true)];
-                        this._children.push([new_move, node]);
+                    for (let new_move of existing_board_cells) {
+                        const {x, y} = new_move;
+                        const v = this.board.at_xy(x, y);
+                        if (can_play(this.board, x, y, this.player)) {
+                            const node = this.clone();
+                            node.put_disc(new_move);
+                            this._children.push([new_move, node]);
+                        }
                     }
                 }
                 return this._children;
-            }
-
-            static score_max(player) {
-                return function score(node) {
-                    const index = player ? 1 : 0;
-                    return node.count[index] - node.count[1-index];
-                }
             }
 
             alphabeta(depth, score)  {
@@ -217,7 +278,7 @@ canvas {
                 function recurse(node, depth, α, β, maximizingPlayer) {
                     if (node.game_over) {
                         if (node.who_won() === me) return Infinity;
-                        if (node.who_won() === !me) return -Infinity;
+                        if (node.who_won() === opponent(me)) return -Infinity;
                         return 0;
                     }
                     if (depth === 0)
@@ -245,25 +306,32 @@ canvas {
                 }
 
                 let best_value = -Infinity;
-                let best_move = undefined;
+                let best_moves = [];
                 for (let [move, child] of this.children) {
                     let value = recurse(child, depth, -Infinity, Infinity, true);
-                    move.value = value;
+                    // move.value = value;
+                    if (value > best_value)
+                        best_moves = [];
                     if (value >= best_value) {
                         best_value = value;
-                        best_move = move;
+                        best_moves.push(move);
                     }
                 }
-                return [best_move, best_value];
+                // this._children.sort((a, b) => a[0].value > b[0].value);
+                return [best_moves, best_value];
             }
 
-            iterative_deepening_alphabeta(time, score)  {
+            ai()  {
+                const time = parameters.thinking_time[this.player];
+                const score = parameters.player_ai[this.player](this.player);
+                const end = Date.now() + time;
                 let depth = 0;
                 while (true) {
-                    let [best_move, best_value] = this.alphabeta(depth, score);
-                    if (depth + this.count[0] + this.count[1] === 64 || time < Date.now()) {
+                    let [best_moves, best_value] = this.alphabeta(depth, score);
+                    if (depth + this.count.reduce((a, b) => a + b, 0) === 64 || end < Date.now()) {
                         console.log(depth);
-                        return [best_move, best_value];
+                        const selected_move = best_moves[Math.floor(Math.random() * best_moves.length)];
+                        return [selected_move, best_value];
                     }
                     depth++;
                 }
@@ -274,13 +342,12 @@ canvas {
             size_of_cell: 20,
             board_background_color: "#232b2b",
             description_background_color: "#2F2F2F",
-            player_a_color: "#8a9a5b",
-            player_b_color: "#8a5b99", // "#6a5b99",
+            player_color: ["#8a9a5b", "#8a5b99"], // "#6a5b99",
             font: "Comic Sans MS",
             threatened: "#5b6a99"
         };
         style.audio = new Audio('water.mp3');
-        animating = undefined;
+        animating = false;
         document.body.style.backgroundColor = "#fdfdfd";
 
         function get_mouse_location(event) {
@@ -305,11 +372,11 @@ canvas {
         function game_ui() {
             let game = new Reversi();
             draw_board(game.board);
-            draw_score(game.board, game.player);
+            draw_score(game, game.player);
 
-            function is_human(player) { return player === true; }
+            function is_human(player) { return false; }
             
-            function do_move(new_disc) {
+            async function do_move(new_disc) {
                 let last_player = game.player;
                 for (let [move, child] of game.children)
                     if (move.x === new_disc.x && move.y === new_disc.y)
@@ -323,31 +390,46 @@ canvas {
                     canvas.removeEventListener('mousemove', mouseOver);
                 }
 
-                draw_piece(new_disc, player_color(last_player));
-                draw_score(game.board, game.player);
-                window.setTimeout(fill_animate(game.board, captured, last_player, async function () {
+                draw_score(game, game.player);
+                if (benchmark) {
+                    draw_board(game.board);
                     if (victorious !== undefined)
                         game_over(game.board, victorious);
-                }), 0);
+                    await sleep(30);
+                } else {
+                    draw_piece(new_disc, player_color(last_player));
+                    await sleep(30);
+                    window.setTimeout(fill_animate(game.board, captured, last_player, function () {
+                        if (victorious !== undefined)
+                            game_over(game.board, victorious);
+                    }), 0);
+                    while (animating) await sleep(30);
+                }
             }
-            
-            async function mouseClick(evt) {
-                if (!is_human(game.player)) return;
 
-                let new_disc = get_cell_from_location(get_mouse_location(evt));
-                if (new_disc === undefined) return;
-                do_move(new_disc);
-                if (!is_human(game.player)) {
+            async function do_ai_move() {
+                while (!is_human(game.player) && !game.game_over) {
                     // canvas.style.cursor = 'progress';
-                    await sleep(300); // nice user experience
-                    const [best_move, best_value] = game.iterative_deepening_alphabeta(Date.now() + parameters.thinking_time, Reversi.score_max(game.player));
-                    // for (const [move, child] of game.children) {
-                    //     ctx.font = "10px " + style.font;
-                    //     ctx.fillStyle = "white";
-                    //     ctx.fillText(move.value, move.x * style.size_of_cell + 10, move.y * style.size_of_cell + 10);
+                    const [best_move, best_value] = game.ai();
+                    // if (debug) {
+                    //     for (const [move, child] of game.children) {
+                    //         ctx.font = "10px " + style.font;
+                    //         ctx.fillStyle = "white";
+                    //         ctx.fillText(move.value, move.x * style.size_of_cell + 10, move.y * style.size_of_cell + 10);
+                    //     }
+                    //     await sleep(1000);
                     // }
-                    do_move(best_move);
+                    await do_move(best_move);
                     // canvas.style.cursor = 'pointer';
+                }
+            }
+
+            async function mouseClick(evt) {
+                if (is_human(game.player)) {
+                    let new_disc = get_cell_from_location(get_mouse_location(evt));
+                    if (new_disc === undefined) return;
+                    await do_move(new_disc);
+                    do_ai_move();
                 }
             }
 
@@ -369,21 +451,23 @@ canvas {
                 if (!animating)
                     draw_threatened(game.player, threatened);
             }
-            
-            return { mouseClick, mouseOver };
+            if (!is_human(first_player))
+                setTimeout(do_ai_move, 550);
+            if (is_human(first_player) || is_human(second_player))
+                return { mouseClick, mouseOver };
+            return {undefined, undefined};
         }
 
         window.onload = function() {
             canvas = document.getElementById("board");
 
-            canvas.height = window.innerHeight - 25;
+            canvas.height = window.innerHeight - 150;
             const base_width = Math.min(
-                window.innerWidth,
-                canvas.height * 0.85
+                window.innerWidth - 25,
+                window.innerHeight * 0.85,
             );
-            description_height = canvas.height * 0.85;
             style.size_of_cell = Math.floor(Math.min(base_width, canvas.height) / parameters.board_size - 1);
-            canvas.width = style.size_of_cell * parameters.board_size;
+            canvas.height = canvas.width = style.size_of_cell * parameters.board_size + 1;
 
             ctx = canvas.getContext("2d");
             g = game_ui();
@@ -420,7 +504,7 @@ canvas {
             const step = 1;
             let size = 1;
             const color = player_color(player);
-            style.audio.cloneNode().play();
+            // style.audio.cloneNode().play();
             function run() {
                 size += step;
                 for (let cell of cells) {
@@ -451,9 +535,8 @@ canvas {
         }
 
         function player_color(player) {
-            if (player === true ) return style.player_a_color;
-            if (player === false) return style.player_b_color;
-            return style.board_background_color;
+            if (player === null ) return style.board_background_color
+            return style.player_color[player];
         }
 
         function draw_board(board) {
@@ -463,7 +546,7 @@ canvas {
                         style.size_of_cell * parameters.board_size + 1);
             for (let x=0; x < parameters.board_size; x++) {
                 for (let y=0; y < parameters.board_size; y++) {
-                    const v = board.at({x, y});
+                    const v = board.at_xy(x, y);
                     if (v !== null)
                         draw_piece({x, y}, player_color(v));
                     else
@@ -472,32 +555,9 @@ canvas {
             }
         }
         
-        function draw_score(board, player_emphasis) {
-            ctx.translate(0, description_height);
-
-            ctx.fillStyle = style.description_background_color;
-            ctx.fillRect(0, 0, canvas.width, canvas.height * 0.15);
-            const score_font_size = canvas.height * 0.10;
-            ctx.font = "" + score_font_size + "px " + style.font;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-
-            for (let player of [true, false]) {
-                const length = count_pieces(board, player);
-                const top = score_font_size * 0.2;
-                const width = ctx.measureText(length).width / 2 + top;
-                const xloc = (player === true) ? width : canvas.width - width;
-
-                ctx.fillStyle = player_color(player)
-                ctx.fillText(length, xloc, top);
-                
-                if (player === player_emphasis) {
-                    ctx.fillStyle = "lightgray";
-                    ctx.fillText("^", xloc, score_font_size * 1.2);
-                }
-            }
-
-            ctx.resetTransform();
+        function draw_score(game, player_emphasis) {
+            document.getElementById("player_0_score").setAttribute('value', game.count[0]);
+            document.getElementById("player_1_score").setAttribute('value', game.count[1]);
         }
 
         function draw_smiley(cell) {

@@ -11,11 +11,6 @@
 }
 
 #board {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
     user-select: none;
     outline: none;
     display: block;
@@ -26,12 +21,13 @@
 #scoreboard {
     display: block;
     margin: auto;
-    padding: 0;
+    padding: 25;
     text-align: center;
 }
 
 .score {
-    font: 8vmin "Comic Sans MS";
+    margin: 5px;
+    font: 7vmin "Comic Sans MS";
 }
 
 .thinking_input {
@@ -64,10 +60,17 @@
     <div id="main_container">
             <div id="scoreboard">
                 <input class="score" id="player_0_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
-                <input class="thinking_input" type="number" value="200" step="50" max="5000" min="50" onchange="parameters.thinking_time[first_player]=Number(value)">
-                <input class="thinking_input" type="number" value="200" step="50" max="5000" min="50" onchange="parameters.thinking_time[second_player]=Number(value)">
+                <select class="thinking_input" id="strategy_0">
+                    <option value="0" selected>👨</option>
+                    <option value="100">💻</option>
+                </select>
+                <select class="thinking_input" id="strategy_1">
+                    <option value="0">👱</option>
+                    <option value="100" selected>💻</option>
+                </select>
                 <input class="score" id="player_1_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
             </div>
+        <br>
         <canvas id="board"></canvas>
         <br>
     </div>
@@ -87,14 +90,15 @@
         parameters = {
             board_size: 8,
             thinking_time: [
-                200,
-                100
+                0,
+                0
             ],
             player_ai: [
                 Strategy.score_max,
                 Strategy.score_max
             ]
         };
+
 
         const first_player = 0;
         const second_player = 1;
@@ -369,48 +373,54 @@
             return cell;
         }
 
-        function game_ui() {
-            let game = new Reversi();
-            draw_board(game.board);
-            draw_score(game, game.player);
+        function is_computer(player) {
+            return parameters.thinking_time[player] > 0;
+        }
 
-            function is_human(player) { return false; }
+        class GameUI {
+            constructor() {
+                this.game = new Reversi();
+                draw_board(this.game.board);
+                draw_score(this.game, this.game.player);
+            } 
             
-            async function do_move(new_disc) {
-                let last_player = game.player;
-                for (let [move, child] of game.children)
+            async do_move(new_disc) {
+                let last_player = this.game.player;
+                let new_game = null;
+                for (let [move, child] of this.game.children)
                     if (move.x === new_disc.x && move.y === new_disc.y)
                         new_game = child;
-                const res = game.put_disc(new_disc);
-                game = new_game;
+                const res = this.game.put_disc(new_disc);
+                if (new_game != null)
+                    this.game = new_game;
                 if (res === undefined) return;
                 const {captured, victorious} = res;
                 if (victorious !== undefined) {
-                    canvas.removeEventListener('click', mouseClick);
-                    canvas.removeEventListener('mousemove', mouseOver);
+                    canvas.removeEventListener('click', this.mouseClick);
+                    canvas.removeEventListener('mousemove', this.mouseOver);
                 }
 
-                draw_score(game, game.player);
-                if (benchmark) {
-                    draw_board(game.board);
+                draw_score(this.game, this.game.player);
+                if (is_computer(first_player) && is_computer(second_player)) {
+                    draw_board(this.game.board);
                     if (victorious !== undefined)
-                        game_over(game.board, victorious);
+                        game_over(this.game.board, victorious);
                     await sleep(30);
                 } else {
                     draw_piece(new_disc, player_color(last_player));
                     await sleep(30);
-                    window.setTimeout(fill_animate(game.board, captured, last_player, function () {
+                    window.setTimeout(fill_animate(this.game.board, captured, last_player, function () {
                         if (victorious !== undefined)
-                            game_over(game.board, victorious);
+                            game_over(this.game.board, victorious);
                     }), 0);
                     while (animating) await sleep(30);
                 }
             }
 
-            async function do_ai_move() {
-                while (!is_human(game.player) && !game.game_over) {
+            async do_ai_move() {
+                while (is_computer(this.game.player) && !this.game.game_over) {
                     // canvas.style.cursor = 'progress';
-                    const [best_move, best_value] = game.ai();
+                    const [best_move, best_value] = this.game.ai();
                     // if (debug) {
                     //     for (const [move, child] of game.children) {
                     //         ctx.font = "10px " + style.font;
@@ -419,43 +429,38 @@
                     //     }
                     //     await sleep(1000);
                     // }
-                    await do_move(best_move);
+                    await this.do_move(best_move);
                     // canvas.style.cursor = 'pointer';
                 }
             }
 
-            async function mouseClick(evt) {
-                if (is_human(game.player)) {
+            async mouseClick(evt) {
+                if (!is_computer(this.game.player)) {
                     let new_disc = get_cell_from_location(get_mouse_location(evt));
                     if (new_disc === undefined) return;
-                    await do_move(new_disc);
-                    do_ai_move();
+                    await this.do_move(new_disc);
+                    this.do_ai_move();
                 }
             }
 
-            function mouseOver(evt) {
-                if (!is_human(game.player)) return;
+            mouseOver(evt) {
+                if (is_computer(this.game.player)) return;
 
                 canvas.style.cursor = 'not-allowed';
                 const cell = get_cell_from_location(get_mouse_location(evt));
-                if (!cell || game.board.at(cell) !== null) {
+                if (!cell || this.game.board.at(cell) !== null) {
                     return;
                 }
                 if (!animating)
-                    draw_board(game.board);
-                draw_hollowed_square(cell, game.player);
-                let threatened = gather_all(game.board, cell, game.player);
+                    draw_board(this.game.board);
+                draw_hollowed_square(cell, this.game.player);
+                let threatened = gather_all(this.game.board, cell, this.game.player);
                 if (threatened.length === 0)
                     return;
                 canvas.style.cursor = 'cell';
                 if (!animating)
-                    draw_threatened(game.player, threatened);
+                    draw_threatened(this.game.player, threatened);
             }
-            if (!is_human(first_player))
-                setTimeout(do_ai_move, 550);
-            if (is_human(first_player) || is_human(second_player))
-                return { mouseClick, mouseOver };
-            return {undefined, undefined};
         }
 
         window.onload = function() {
@@ -470,9 +475,20 @@
             canvas.height = canvas.width = style.size_of_cell * parameters.board_size + 1;
 
             ctx = canvas.getContext("2d");
-            g = game_ui();
-            canvas.addEventListener("click", g.mouseClick);
-            canvas.addEventListener("mousemove", g.mouseOver);
+            g = new GameUI();
+
+            canvas.addEventListener("click", event => g.mouseClick(event));
+            canvas.addEventListener("mousemove", event => g.mouseOver(event));
+            
+            for (const player of [first_player, second_player]) {
+                const elem = document.getElementById("strategy_" + player);
+                elem.addEventListener("change", function (event) {
+                    parameters.thinking_time[player] = Number(event.target.value);
+                    if (g.game.player === player && is_computer(player))
+                        setTimeout(g.do_ai_move.bind(g), 550);
+                });
+                elem.dispatchEvent(new Event('change'));
+            }
         }
 
         function draw_piece(cell, color) {
@@ -504,7 +520,7 @@
             const step = 1;
             let size = 1;
             const color = player_color(player);
-            // style.audio.cloneNode().play();
+            style.audio.cloneNode().play();
             function run() {
                 size += step;
                 for (let cell of cells) {

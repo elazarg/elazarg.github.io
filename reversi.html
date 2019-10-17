@@ -28,20 +28,21 @@
 }
 
 .score {
+    border: 0;
     cursor: default;
     margin: 5px;
     font: 7vmin "Comic Sans MS";
+    background-color: #2F2F2F;
 }
 
 .thinking_input {
-    font: 3vmin "Comic Sans MS";
+    border: 0;
     text-align: center;
     outline: none;
     size: 4em;
 }
 
 #player_0_score {
-    background-color: #2F2F2F;
     color: #8a9a5b;
     text-align: center;
     width: 2em;
@@ -49,7 +50,6 @@
 }
 
 #player_1_score {
-    background-color: #2F2F2F;
     min-width: 2em;
     text-align: center;
     width: 2em;
@@ -60,6 +60,7 @@ select {
     -moz-appearance: none;
     text-indent: 1px;
     text-overflow: '';
+    size: 2em;
 }
 </style>
 <title>Reversi</title>
@@ -67,16 +68,16 @@ select {
 <body>
     <div id="main_container">
             <div id="scoreboard">
-                <input class="score" id="player_0_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
-                <select class="thinking_input" id="strategy_0">
+                <select class="thinking_input score" type="button" id="strategy_0">
                     <option value="0" selected>👨</option>
                     <option value="100">💻</option>
                 </select>
-                <select class="thinking_input" id="strategy_1">
+                <input class="score" id="player_0_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
+                <input class="score" id="player_1_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
+                <select class="thinking_input score" id="strategy_1">
                     <option value="0">👱</option>
                     <option value="100" selected>💻</option>
                 </select>
-                <input class="score" id="player_1_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
             </div>
         <br>
         <canvas id="board"></canvas>
@@ -398,7 +399,7 @@ select {
                 for (let [move, child] of this.game.children)
                     if (move.x === new_disc.x && move.y === new_disc.y)
                         new_game = child;
-                if (new_game === null) throw new Error("no children");
+                if (new_game === null) return;
                 const res = this.game.put_disc(new_disc);
                 this.game = new_game;
                 if (res === undefined) return;

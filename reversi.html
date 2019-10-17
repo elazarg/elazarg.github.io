@@ -398,9 +398,9 @@ select {
                 for (let [move, child] of this.game.children)
                     if (move.x === new_disc.x && move.y === new_disc.y)
                         new_game = child;
+                if (new_game === null) throw new Error("no children");
                 const res = this.game.put_disc(new_disc);
-                if (new_game != null)
-                    this.game = new_game;
+                this.game = new_game;
                 if (res === undefined) return;
                 const {captured, victorious} = res;
                 if (victorious !== undefined) {
@@ -417,11 +417,10 @@ select {
                 } else {
                     draw_piece(new_disc, player_color(last_player));
                     await sleep(30);
-                    window.setTimeout(fill_animate(this.game.board, captured, last_player, function () {
-                        if (victorious !== undefined)
-                            game_over(this.game.board, victorious);
-                    }), 0);
+                    window.setTimeout(fill_animate(this.game.board, captured, last_player), 0);
                     while (animating) await sleep(30);
+                    if (victorious !== undefined)
+                        game_over(this.game.board, victorious);
                 }
             }
 
@@ -523,7 +522,7 @@ select {
                             style.size_of_cell - 1);
         }
 
-        function fill_animate(board, cells, player, continuation) {
+        function fill_animate(board, cells, player) {
             animating = true;
             const step = 1;
             let size = 1;
@@ -538,7 +537,6 @@ select {
                     window.setTimeout(run, 6);
                 } else {
                     animating = false;
-                    continuation();
                 }
             }
             return run;

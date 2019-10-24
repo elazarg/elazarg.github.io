@@ -62,6 +62,10 @@ select {
     text-overflow: '';
     size: 2em;
 }
+#refresh {
+    transform: rotate(90deg);
+    color: #e1ff90;
+}
 </style>
 <title>Reversi</title>
 </head>
@@ -73,6 +77,7 @@ select {
                     <option value="100">💻</option>
                 </select>
                 <input class="score" id="player_0_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
+                <button class="score" id="refresh" type="button">↻</button>
                 <input class="score" id="player_1_score" value="2" type="number" min="0" max="64" maxlength="3" readonly>
                 <select class="thinking_input score" id="strategy_1">
                     <option value="0">👱</option>
@@ -388,11 +393,16 @@ select {
 
         class GameUI {
             constructor() {
+                this.restart();
+            } 
+            
+            restart() {
                 this.game = new Reversi();
                 draw_board(this.game.board);
                 draw_score(this.game, this.game.player);
-            } 
-            
+                this.do_ai_move();
+            }
+
             async do_move(new_disc) {
                 let last_player = this.game.player;
                 let new_game = null;
@@ -484,19 +494,18 @@ select {
 
             ctx = canvas.getContext("2d");
             g = new GameUI();
-
-            canvas.addEventListener("click", event => g.mouseClick(event));
-            canvas.addEventListener("mousemove", event => g.mouseOver(event));
-            
             for (const player of [first_player, second_player]) {
                 const elem = document.getElementById("strategy_" + player);
                 elem.addEventListener("change", function (event) {
                     parameters.thinking_time[player] = Number(event.target.value);
                     if (g.game.player === player && is_computer(player))
-                        setTimeout(g.do_ai_move.bind(g), 550);
+                        setTimeout(() => g.do_ai_move(), 550);
                 });
                 elem.dispatchEvent(new Event('change'));
             }
+            canvas.addEventListener("click", event => g.mouseClick(event));
+            canvas.addEventListener("mousemove", event => g.mouseOver(event));
+            document.getElementById("refresh").addEventListener("click", event => g.restart());
         }
 
         function draw_piece(cell, color) {
@@ -567,14 +576,12 @@ select {
             ctx.fillRect(0, 0,
                         style.size_of_cell * parameters.board_size + 1,
                         style.size_of_cell * parameters.board_size + 1);
-            for (let x=0; x < parameters.board_size; x++) {
-                for (let y=0; y < parameters.board_size; y++) {
-                    const v = board.at_xy(x, y);
-                    if (v !== null)
-                        draw_piece({x, y}, player_color(v));
-                    else
-                        draw_empty({x, y});
-                }
+            for (let cell of existing_board_cells) {
+                const v = board.at(cell);
+                if (v !== null)
+                    draw_piece(cell, player_color(v));
+                else
+                    draw_empty(cell);
             }
         }
         

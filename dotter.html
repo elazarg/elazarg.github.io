@@ -18,14 +18,9 @@ p {
   margin-top: 1.5rem;
   margin-bottom: 0;
 }
-h1 {
-  font-family: sans-serif;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  line-height: 1.5rem;
-  font-size: 4.242rem;
-  line-height: 4.5rem;
-  margin-top: 1rem;
+textarea {
+  width: 90%;
+  min-height: 20%;
 }
   </style>
 </head>
@@ -36,12 +31,12 @@ h1 {
       <h1 style="text-align: center;">נקדן</h1>
     </section>
     <label for="text"></label>
-    <div class="setting">
-        <textarea id="undotted_text" rows="16" cols="60" style="font-size: 20px;">הכנס טקסט לניקוד</textarea>
-        <textarea id="dotted_text" readonly rows="16" cols="60" style="font-size: 20px;"></textarea>
+    <div class="setting" style="text-align: center;">
+        <textarea id="undotted_text" rows="6" style="font-size: 20px;">הכנס טקסט לניקוד</textarea>
+        <textarea id="dotted_text" readonly rows="6" style="font-size: 20px;"></textarea>
     </div>
     <div style="text-align: center;" >
-        <button id="perform_dot" disabled>נקד</button>
+        <button id="perform_dot" disabled>טוען</button>
     </div>
   </div>
 </body>

@@ -42,6 +42,7 @@ async function load_model() {
     const undotted_text = document.getElementById("undotted_text");
     const dotted_text = document.getElementById("dotted_text");
     dotButton.disabled = false;
+    dotButton.textContent = "נקד";
     dotButton.addEventListener("click", (ev) => dotted_text.value = perform_dot(undotted_text.value));
 }
 

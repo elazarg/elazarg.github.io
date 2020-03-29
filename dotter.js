@@ -38,6 +38,9 @@ async function load_model() {
         return prediction_to_text(prediction, undotted_text);
     }
 
+    document.getElementById("loader").remove();
+    document.getElementById("content").style.visibility = 'visible';
+
     const dotButton = document.getElementById("perform_dot");
     const undotted_text = document.getElementById("undotted_text");
     const dotted_text = document.getElementById("dotted_text");

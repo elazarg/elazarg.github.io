@@ -8,7 +8,7 @@ function from_categorical(arr, len) {
 }
 
 function text_to_input(text) {
-    text = text.replace(/\s/, ' ');
+    text = text.replace('\n', ' ');
     text = Array.from(text);
     const ords = text.map(v=>letters_array.indexOf(v));
     const input = tf.tensor1d(ords).pad([[1, 32*60 - text.length - 1]]).reshape([32, 60]);

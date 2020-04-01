@@ -1,6 +1,6 @@
 const niqqud_array = ['', 'ְ', 'ֱ', 'ֲ', 'ֳ', 'ִ', 'ֵ', 'ֶ', 'ַ', 'ָ', 'ֹ', 'ֺ', 'ֻ', 'ּ', 'ַ'];
 const dagesh_array = ['', 'ּ'];
-const sin = ['', 'ׁ', 'ׂ'];
+const sin_array = ['', 'ׁ', 'ׂ'];
 
 const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'ך', 'כ', 'ל', 'ם', 'מ', 'ן', 'נ', 'ס', 'ע', 'ף',
 'פ', 'ץ', 'צ', 'ק', 'ר', 'ש', 'ת'];
@@ -37,10 +37,11 @@ function text_to_input(text) {
 }
 
 function prediction_to_text(model_output, undotted_text) {
-    const [niqqud, dagesh] = model_output;
+    const [niqqud, dagesh, sin] = model_output;
     const len = undotted_text.length;
     const niqqud_result = from_categorical(niqqud, len);
     const dagesh_result = from_categorical(dagesh, len);
+    const sin_result = from_categorical(sin, len);
     let output = '';
     for (let i = 0; i < len; i++) {
         const c = undotted_text[i];
@@ -48,6 +49,7 @@ function prediction_to_text(model_output, undotted_text) {
         if (HEBREW_LETTERS.includes(c)) {
             output += niqqud_array[niqqud_result[i]] || '';
             output += dagesh_array[dagesh_result[i]] || '';
+            output += sin_array[sin_result[i]] || '';
         }
     }
     return output;

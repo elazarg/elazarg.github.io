@@ -30,7 +30,7 @@ function split_to_rows(text) {
     let line = [];
     const rows = [line];
     for (let i=0; i < arr.length; i++) {
-        if (arr[i].length + line.length > MAXLEN) {
+        if (arr[i].length + line.length + 1> MAXLEN) {
             while (line.length < MAXLEN)
                 line.push(0);
             line = [];

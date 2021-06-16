@@ -1,16 +1,12 @@
 <html lang="he" dir="rtl">
-<link rel="stylesheet" type="text/css"
-    href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.min.css" />
-<link rel="stylesheet" type="text/css"
-    href="https://cdn.datatables.net/v/ju/jq-3.3.1/jszip-2.5.0/dt-1.10.25/b-1.7.1/b-colvis-1.7.1/b-html5-1.7.1/sc-2.0.4/sp-1.3.0/datatables.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.min.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/ju/jq-3.3.1/jszip-2.5.0/dt-1.10.25/b-1.7.1/b-colvis-1.7.1/b-html5-1.7.1/cr-1.5.4/fh-3.1.9/sc-2.0.4/datatables.min.css"/>
+     
+    <script type="text/javascript" src="https://cdn.datatables.net/v/ju/jq-3.3.1/jszip-2.5.0/dt-1.10.25/b-1.7.1/b-colvis-1.7.1/b-html5-1.7.1/cr-1.5.4/fh-3.1.9/sc-2.0.4/datatables.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>        
+<body class="dropzone">
 
-<script type="text/javascript"
-    src="https://cdn.datatables.net/v/ju/jq-3.3.1/jszip-2.5.0/dt-1.10.25/b-1.7.1/b-colvis-1.7.1/b-html5-1.7.1/sc-2.0.4/sp-1.3.0/datatables.min.js"></script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-
-<body>
-
-    <form id="jsonFile" name="jsonFile" enctype="multipart/form-data" method="post">
+    <form id="jsonFile" name="jsonFile" enctype="multipart/form-data" method="post" style="text-align: center;">
 
         <fieldset>
             <h2>העלה קובץ</h2>
@@ -20,14 +16,13 @@
     </form>
 
     <div id="myTables"></div>
+    <div id="buttons"></div>
 
     <script type="text/javascript">
-
         const tables = document.getElementById("myTables");
 
 
         Object.values = obj => Object.keys(obj).map(key => obj[key]);
-        var j;
         function loadFile() {
             var input, file, fr;
 
@@ -122,10 +117,35 @@
                         row.appendChild(cell);
                     }
                 }
-                $(table).DataTable();
+                var datatable = $(table).DataTable( {
+                    dom: 'Bfrtip',
+                    buttons: [
+                        'copy', 'csv', 'excel'
+                    ]
+                } );
+                datatable.buttons().container().appendTo( $('.col-sm-6:eq(0)', datatable.table().container() ) );
+
                 document.getElementById("jsonFile").remove();
             }
         }
+
+var $dropzone = document.querySelector('.dropzone');
+var input = document.getElementById('fileinput');
+
+$dropzone.ondragover = function (e) { 
+  e.preventDefault(); 
+  this.classList.add('dragover');
+};
+$dropzone.ondragleave = function (e) { 
+    e.preventDefault();
+    this.classList.remove('dragover');
+};
+$dropzone.ondrop = function (e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    input.files = e.dataTransfer.files;
+    loadFile();
+}
     </script>
 
 </body>

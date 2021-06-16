@@ -4,19 +4,62 @@
      
     <script type="text/javascript" src="https://cdn.datatables.net/v/ju/jq-3.3.1/jszip-2.5.0/dt-1.10.25/b-1.7.1/b-colvis-1.7.1/b-html5-1.7.1/cr-1.5.4/fh-3.1.9/sc-2.0.4/datatables.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>        
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap');
+
+
+.drag-area{
+  margin: 4%;
+  padding: 4%;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+  min-height: 80vh;
+  background: #6f74c4;
+  border: 5px dashed #000;
+  height: 50%;
+  width: 70%;
+  border-radius: 5px;
+  display: flex;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.drag-area.active{
+  border: 2px solid #fff;
+}
+
+.drag-area header{
+  font-size: 40px;
+  font-weight: 500;
+  color: #fff;
+}
+.drag-area span{
+  font-size: 25px;
+  font-weight: 500;
+  color: #FFF;
+  margin: 10px 0 15px 0;
+}
+.drag-area button{
+  padding: 25px 25px;
+  font-size: 20px;
+  font-weight: 500;
+  border: none;
+  outline: none;
+  background: #000;
+  color: #5256ad;
+  border-radius: 5px;
+  cursor: pointer;
+}
+    </style>
 <body class="dropzone">
 
-    <form id="jsonFile" name="jsonFile" enctype="multipart/form-data" method="post" style="text-align: center;">
-
-        <fieldset>
-            <h2>העלה קובץ</h2>
-            <input type='file' id='fileinput' value="בחר קובץ">
-            <input type='button' id='btnLoad' value="טען" onclick='loadFile();'>
-        </fieldset>
-    </form>
+    <div id="file-container" class="drag-area">
+        <header>Drag & Drop to Upload File</header>
+        <input type='file' id='fileinput' onchange='loadFile();'>
+      </div>
 
     <div id="myTables"></div>
-    <div id="buttons"></div>
 
     <script type="text/javascript">
         const tables = document.getElementById("myTables");
@@ -123,29 +166,27 @@
                         'copy', 'csv', 'excel'
                     ]
                 } );
-                datatable.buttons().container().appendTo( $('.col-sm-6:eq(0)', datatable.table().container() ) );
-
-                document.getElementById("jsonFile").remove();
+                document.getElementById("file-container").remove();
             }
         }
 
-var $dropzone = document.querySelector('.dropzone');
-var input = document.getElementById('fileinput');
+    var $dropzone = document.querySelector('.drag-area');
+    var input = document.getElementById('fileinput');
 
-$dropzone.ondragover = function (e) { 
-  e.preventDefault(); 
-  this.classList.add('dragover');
-};
-$dropzone.ondragleave = function (e) { 
-    e.preventDefault();
-    this.classList.remove('dragover');
-};
-$dropzone.ondrop = function (e) {
-    e.preventDefault();
-    this.classList.remove('dragover');
-    input.files = e.dataTransfer.files;
-    loadFile();
-}
+    $dropzone.ondragover = function (e) { 
+    e.preventDefault(); 
+    this.classList.add('dragover');
+    };
+    $dropzone.ondragleave = function (e) { 
+        e.preventDefault();
+        this.classList.remove('dragover');
+    };
+    $dropzone.ondrop = function (e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        input.files = e.dataTransfer.files;
+        loadFile();
+    }
     </script>
 
 </body>

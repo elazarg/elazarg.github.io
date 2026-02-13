@@ -20,7 +20,7 @@
 
       <section>
 	      <div id="title">
-          <img src="/assets/profile.jpg" alt="Profile picture" class="profile-img">
+          <img src="{{ '/assets/profile.jpg?v=' | append: site.github.build_revision | relative_url }}" alt="Profile picture" class="profile-img">
           <h1>{{ site.title | default: site.github.repository_name }}</h1>
           <p>{{ site.description | default: site.github.project_tagline }}</p>
           <p><a href="mailto: elazarg@gmail.com">elazar.g@gmail.com</a><br>

@@ -3,9 +3,8 @@ layout: default
 ---
 I am Elazar Gershuni.
 
-I build and maintain formal-methods-heavy systems that need to work in practice.
-I am also a PhD candidate, and research is a central part of my work.
-My default mode is open research: I develop projects, code, and artifacts publicly and continuously.
+I am a PhD candidate working at the intersection of programming languages, formal methods, and systems.
+I work across research and implementation: I turn formal ideas into open-source systems and refine them in practice.
 
 I am the chief maintainer of [PREVAIL](https://github.com/vbpf/ebpf_verifier) and its [Rust port](https://github.com/elazarg/prevail-rust).
 
@@ -33,6 +32,6 @@ Contact:
 - `elazarg@gmail.com`
 - [GitHub](https://github.com/elazarg)
 - [LinkedIn](https://www.linkedin.com/in/elazar-gershuni/)
-- [Stack Overflow (21,995 reputation)](https://stackoverflow.com/users/2289509/elazar)
+- [Stack Overflow (22K)](https://stackoverflow.com/users/2289509/elazar)
 - [DBLP](https://dblp.org/pid/242/4503.html)
 - [OpenReview](https://openreview.net/profile?id=~Elazar_Gershuni1)

@@ -4,8 +4,8 @@ title: About
 permalink: /about/
 ---
 
-I am a programming languages researcher and engineer, currently a PhD candidate, focused on building systems where correctness claims are explicit and checkable.
-My default mode is open research: I develop projects, code, and artifacts publicly and continuously.
+I am a PhD candidate and engineer working at the intersection of programming languages, formal methods, and systems.
+I work across research and implementation: I turn formal ideas into open-source systems and refine them in practice.
 
 I work across language design, static analysis, and formal methods, with an emphasis on end-to-end artifacts: semantics, implementation, tests, and maintainable workflows.
 

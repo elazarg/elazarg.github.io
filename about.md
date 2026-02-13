@@ -39,6 +39,6 @@ Contact:
 - `elazarg@gmail.com`
 - [GitHub](https://github.com/elazarg)
 - [LinkedIn](https://www.linkedin.com/in/elazar-gershuni/)
-- [Stack Overflow (21,995 reputation)](https://stackoverflow.com/users/2289509/elazar)
+- [Stack Overflow (22K)](https://stackoverflow.com/users/2289509/elazar)
 - [DBLP](https://dblp.org/pid/242/4503.html)
 - [OpenReview](https://openreview.net/profile?id=~Elazar_Gershuni1)

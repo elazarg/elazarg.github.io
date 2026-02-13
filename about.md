@@ -19,7 +19,7 @@ My current focus is the Vegas program, a language-and-tooling stack for strategi
 This work sits at the boundary of game theory, blockchain protocols, formal verification, and practical cryptography.
 
 Selected technical work:
-- [pythia](https://github.com/elazarg/pythia): static analysis for Python bytecode.
+- [pythia](https://github.com/elazarg/pythia): static-analysis tool that synthesizes per-loop checkpoint state, persisting only live dirty roots rather than all locals.
 - [mypy](https://github.com/python/mypy): contributor, working with the maintainer team led by Jukka Lehtosalo and Guido van Rossum.
 - [np-guard](https://github.com/np-guard/models): contributor.
 - Lean ecosystem: contribution to the Lean standard library, and [kraft](https://github.com/elazarg/kraft), where I formalized the Kraft-McMillan inequality, a constructive converse via prefix-free code existence, and source-coding results (entropy lower bound and an entropy-plus-one existence bound), with parts being upstreamed to Mathlib.

@@ -17,7 +17,7 @@ My current program is Vegas:
 The common thread is practical rigor at the boundary of game theory, blockchain protocols, formal verification, and practical cryptography.
 
 Selected work:
-- [pythia](https://github.com/elazarg/pythia): static analysis for Python bytecode.
+- [pythia](https://github.com/elazarg/pythia): static-analysis tool that synthesizes per-loop checkpoint state, persisting only live dirty roots rather than all locals.
 - [mypy](https://github.com/python/mypy): contributor, working with the maintainer team led by Jukka Lehtosalo and Guido van Rossum.
 - [np-guard](https://github.com/np-guard/models): contributor.
 - [anyway](https://github.com/data-for-change/anyway): civic-tech work for road-safety transparency.

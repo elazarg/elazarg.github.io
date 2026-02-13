@@ -27,7 +27,6 @@ Selected work:
 Publications:
 - Dan Greenstein, Elazar Gershuni, Ilan Ben-Bassat, Yaroslav Fyodorov, Ran Moshe, Fiana Raiber, Alex Shtoff, Oren Somekh, Nadav Hallak. *A Stochastic Approach to the Subset Selection Problem via Mirror Descent.* ICLR 2025. [OpenReview](https://openreview.net/forum?id=5K0fmGnFqP)
 - Elazar Gershuni, Yuval Pinter. *Restoring Hebrew Diacritics Without a Dictionary.* Findings of NAACL 2022. [ACL Anthology](https://aclanthology.org/2022.findings-naacl.75)
-- Elazar Gershuni, Yuval Pinter. *Restoring Hebrew Diacritics Without a Dictionary.* CoRR 2021. [arXiv](https://arxiv.org/abs/2105.05209)
 - Elazar Gershuni, Nadav Amit, Arie Gurfinkel, Nina Narodytska, Jorge A. Navas, Noam Rinetzky, Leonid Ryzhyk, Mooly Sagiv. *Simple and Precise Static Analysis of Untrusted Linux Kernel Extensions.* PLDI 2019. [DOI](https://doi.org/10.1145/3314221.3314590) · [Local PDF](pldi19main-final.pdf)
 
 Contact:

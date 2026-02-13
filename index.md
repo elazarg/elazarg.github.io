@@ -13,7 +13,7 @@ My current program is Vegas:
 - The [vegas](https://github.com/elazarg/vegas) compiler, which turns specifications into analyzable and executable artifacts.
 - [thrones](https://github.com/elazarg/thrones), a workbench for interactive game-theoretic analysis.
 
-The common thread is practical rigor at the boundary of game theory, blockchain protocols, formal verification, and practical cryptography.
+This program lives at the boundary of game theory, blockchain protocols, formal verification, and practical cryptography.
 
 Selected work:
 - [pythia](https://github.com/elazarg/pythia): static-analysis tool that synthesizes per-loop checkpoint state, persisting only live dirty roots rather than all locals.

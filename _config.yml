@@ -16,7 +16,7 @@
 title: Elazar Gershuni
 email: elazarg@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Programming languages, static analysis, and game-related language design.
+  Applied PL
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://elazarg.github.io"
 github_username:  elazarg

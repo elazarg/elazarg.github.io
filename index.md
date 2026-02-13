@@ -7,7 +7,7 @@ I build and maintain formal-methods-heavy systems that need to work in practice.
 I am also a PhD candidate, and research is a central part of my work.
 My default mode is open research: I develop projects, code, and artifacts publicly and continuously.
 
-I am the chief maintainer of [PREVAIL](https://github.com/vbpf/ebpf_verifier), and its [Rust port](https://github.com/elazarg/prevail-rust).
+I am the chief maintainer of [PREVAIL](https://github.com/vbpf/ebpf_verifier) and its [Rust port](https://github.com/elazarg/prevail-rust).
 
 My current program is Vegas:
 - Foundations for reasoning about strategic protocols.
